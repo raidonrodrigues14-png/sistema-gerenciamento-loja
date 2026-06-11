@@ -1,0 +1,111 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { supabase, fmtBRL } from "@/lib/supabase";
+import { Printer, ArrowLeft, Shirt } from "lucide-react";
+
+export default function VerNota() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [nota, setNota] = useState(null);
+  const [itens, setItens] = useState([]);
+
+  useEffect(() => {
+    supabase.from("notas").select("*").eq("id", id).single().then(({ data }) => setNota(data));
+    supabase.from("nota_itens").select("*").eq("nota_id", id).then(({ data }) => setItens(data || []));
+  }, [id]);
+
+  if (!nota) {
+    return <div className="animate-pulse text-slate-400 font-medium py-20 text-center">Carregando…</div>;
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="no-print flex items-center justify-between">
+        <button onClick={() => router.push("/notas")} className="btn-ghost">
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
+        <button onClick={() => window.print()} className="btn-primary">
+          <Printer className="w-4 h-4" /> Imprimir
+        </button>
+      </div>
+
+      <div className="card p-8 print:shadow-none print:border-none">
+        <div className="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center">
+              <Shirt className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-slate-900">Loja Joselane</p>
+              <p className="text-sm text-slate-400">Nota de venda</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-extrabold text-violet-600">#{nota.numero}</p>
+            <p className="text-sm text-slate-400">
+              {new Date(nota.criado_em).toLocaleString("pt-BR")}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Cliente</p>
+            <p className="font-semibold text-slate-900">{nota.cliente_nome}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Pagamento</p>
+            <p className="font-semibold text-slate-900">{nota.forma_pagamento}</p>
+          </div>
+        </div>
+
+        <table className="w-full text-sm mb-6">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-200">
+              <th className="py-2.5">Item</th>
+              <th className="py-2.5 text-center">Qtd</th>
+              <th className="py-2.5 text-right">Preço un.</th>
+              <th className="py-2.5 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {itens.map((i) => (
+              <tr key={i.id}>
+                <td className="py-3 font-medium text-slate-900">{i.descricao}</td>
+                <td className="py-3 text-center">{i.quantidade}</td>
+                <td className="py-3 text-right text-slate-500">{fmtBRL(i.preco_unit)}</td>
+                <td className="py-3 text-right font-semibold">{fmtBRL(i.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="flex justify-end">
+          <div className="w-64 space-y-1.5 text-sm">
+            <div className="flex justify-between text-slate-500">
+              <span>Subtotal</span><span>{fmtBRL(nota.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-slate-500">
+              <span>Desconto</span><span>- {fmtBRL(nota.desconto)}</span>
+            </div>
+            <div className="flex justify-between text-xl font-extrabold text-slate-900 border-t border-slate-200 pt-2">
+              <span>Total</span><span>{fmtBRL(nota.total)}</span>
+            </div>
+          </div>
+        </div>
+
+        {nota.observacao && (
+          <p className="mt-6 text-sm text-slate-500 border-t border-slate-100 pt-4">
+            <strong>Obs:</strong> {nota.observacao}
+          </p>
+        )}
+
+        <p className="mt-8 text-center text-xs text-slate-400">
+          Obrigado pela preferência! ♥
+        </p>
+      </div>
+    </div>
+  );
+}
