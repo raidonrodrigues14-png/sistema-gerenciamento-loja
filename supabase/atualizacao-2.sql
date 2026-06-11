@@ -1,16 +1,9 @@
--- =============================================================
--- ATUALIZAÇÃO 2: Malinhas, Crediário e Financeiro
--- Execute no Supabase: SQL Editor > New query > colar > Run
--- (rode só esta atualização, o schema.sql você já rodou antes)
--- =============================================================
-
--- MALINHAS (fashion delivery / condicional)
 create table if not exists malinhas (
   id uuid primary key default gen_random_uuid(),
   numero serial,
   cliente_id uuid references clientes(id) on delete set null,
   cliente_nome text not null,
-  status text not null default 'aberta', -- aberta | fechada
+  status text not null default 'aberta',
   observacao text,
   criado_em timestamptz default now(),
   fechado_em timestamptz
@@ -23,10 +16,9 @@ create table if not exists malinha_itens (
   descricao text not null,
   quantidade integer not null default 1,
   preco numeric(10,2) not null default 0,
-  situacao text not null default 'enviado' -- enviado | devolvido | comprado
+  situacao text not null default 'enviado'
 );
 
--- CREDIÁRIO (parcelas das notas)
 create table if not exists parcelas (
   id uuid primary key default gen_random_uuid(),
   nota_id uuid not null references notas(id) on delete cascade,
@@ -37,10 +29,9 @@ create table if not exists parcelas (
   pago_em date
 );
 
--- FINANCEIRO (lançamentos manuais: contas a pagar/receber, despesas)
 create table if not exists lancamentos (
   id uuid primary key default gen_random_uuid(),
-  tipo text not null default 'saida', -- entrada | saida
+  tipo text not null default 'saida',
   descricao text not null,
   categoria text default 'Geral',
   valor numeric(10,2) not null default 0,
@@ -49,7 +40,6 @@ create table if not exists lancamentos (
   criado_em timestamptz default now()
 );
 
--- Segurança (RLS)
 alter table malinhas enable row level security;
 alter table malinha_itens enable row level security;
 alter table parcelas enable row level security;

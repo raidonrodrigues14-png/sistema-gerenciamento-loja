@@ -10,6 +10,38 @@ function tag(el, nome) {
   return t.length ? t[0].textContent : "";
 }
 
+// Detecta o tamanho dentro da descrição da peça (o XML da NFe não tem campo próprio)
+const TAMANHOS = ["PP", "P", "M", "G", "GG", "XG", "XGG", "EXG", "EG", "G1", "G2", "G3", "U", "UN"];
+const NUMERICOS = /^(3[4-9]|4[0-9]|5[0-8])$/;
+
+function detectarTamanho(texto) {
+  const t = (texto || "").toUpperCase();
+  // padrão "TAM M", "TAM: G", "TAM. 42", "TAMANHO GG"
+  const m = t.match(/TAM(?:ANHO)?[\s.:\-]*([A-Z0-9]{1,3})\b/);
+  if (m && (TAMANHOS.includes(m[1]) || NUMERICOS.test(m[1]))) return m[1];
+  // último token da descrição sendo um tamanho conhecido: "BLUSA CANELADA G"
+  const palavras = t.replace(/[^A-Z0-9 ]/g, " ").trim().split(/\s+/);
+  for (let i = palavras.length - 1; i >= Math.max(0, palavras.length - 3); i--) {
+    if (TAMANHOS.includes(palavras[i]) || NUMERICOS.test(palavras[i])) return palavras[i];
+  }
+  return "";
+}
+
+const CORES = [
+  "PRETO", "PRETA", "BRANCO", "BRANCA", "OFF WHITE", "OFF-WHITE", "AZUL", "VERMELHO", "VERMELHA",
+  "ROSA", "PINK", "VERDE", "AMARELO", "AMARELA", "BEGE", "CINZA", "MARROM", "ROXO", "ROXA",
+  "LILAS", "LILÁS", "VINHO", "LARANJA", "NUDE", "DOURADO", "PRATA", "CARAMELO", "MOSTARDA",
+  "TERRACOTA", "JEANS", "MARINHO", "CREME", "CHUMBO", "BORDO", "BORDÔ", "SALMAO", "SALMÃO",
+];
+
+function detectarCor(texto) {
+  const t = (texto || "").toUpperCase();
+  for (const cor of CORES) {
+    if (new RegExp(`\\b${cor.replace("-", "[ -]?")}\\b`).test(t)) return cor;
+  }
+  return "";
+}
+
 export default function ImportarXML() {
   const router = useRouter();
   const [nfe, setNfe] = useState(null);
@@ -40,14 +72,20 @@ export default function ImportarXML() {
         const lista = dets.map((det, i) => {
           const prod = det.getElementsByTagName("prod")[0];
           const custo = Number(tag(prod, "vUnCom")) || 0;
+          const nome = tag(prod, "xProd");
+          // infAdProd costuma trazer "Tamanho: M / Cor: Preto"
+          const infoExtra = tag(det, "infAdProd");
+          const textoBusca = `${nome} ${infoExtra}`;
           return {
             sel: true,
             idx: i,
             codigo: tag(prod, "cProd"),
-            nome: tag(prod, "xProd"),
+            nome,
             ncm: tag(prod, "NCM"),
             qtd: Math.round(Number(tag(prod, "qCom")) || 1),
             custo,
+            tamanho: detectarTamanho(textoBusca),
+            cor: detectarCor(textoBusca),
           };
         });
         if (!lista.length) throw new Error("Nenhum produto encontrado no XML.");
@@ -87,6 +125,8 @@ export default function ImportarXML() {
               estoque: (existentes[0].estoque || 0) + item.qtd,
               preco_custo: item.custo,
               fornecedor: nfe.fornecedor,
+              tamanho: item.tamanho || null,
+              cor: item.cor || null,
             })
             .eq("id", existentes[0].id);
         } else {
@@ -94,6 +134,8 @@ export default function ImportarXML() {
             codigo: item.codigo,
             nome: item.nome,
             categoria: "Geral",
+            tamanho: item.tamanho || null,
+            cor: item.cor || null,
             preco_custo: item.custo,
             preco_venda: precoVenda(item.custo),
             estoque: item.qtd,
@@ -190,6 +232,8 @@ export default function ImportarXML() {
                   </th>
                   <th className="px-5 py-3.5">Código</th>
                   <th className="px-5 py-3.5">Produto</th>
+                  <th className="px-5 py-3.5">Tam</th>
+                  <th className="px-5 py-3.5">Cor</th>
                   <th className="px-5 py-3.5">Qtd</th>
                   <th className="px-5 py-3.5">Custo un.</th>
                   <th className="px-5 py-3.5">Venda sugerida</th>
@@ -209,6 +253,26 @@ export default function ImportarXML() {
                     </td>
                     <td className="px-5 py-3 text-slate-500">{item.codigo}</td>
                     <td className="px-5 py-3 font-medium text-slate-900">{item.nome}</td>
+                    <td className="px-2 py-3">
+                      <input
+                        className="input w-16 px-2 py-1.5 text-center"
+                        value={item.tamanho || ""}
+                        placeholder="—"
+                        onChange={(e) =>
+                          setItens(itens.map((i) => (i.idx === item.idx ? { ...i, tamanho: e.target.value.toUpperCase() } : i)))
+                        }
+                      />
+                    </td>
+                    <td className="px-2 py-3">
+                      <input
+                        className="input w-24 px-2 py-1.5"
+                        value={item.cor || ""}
+                        placeholder="—"
+                        onChange={(e) =>
+                          setItens(itens.map((i) => (i.idx === item.idx ? { ...i, cor: e.target.value } : i)))
+                        }
+                      />
+                    </td>
                     <td className="px-5 py-3">{item.qtd}</td>
                     <td className="px-5 py-3 text-slate-500">{fmtBRL(item.custo)}</td>
                     <td className="px-5 py-3 font-semibold text-emerald-600">{fmtBRL(precoVenda(item.custo))}</td>
