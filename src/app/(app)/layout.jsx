@@ -80,7 +80,7 @@ export default function AppLayout({ children }) {
               className="chrome-text serif"
               style={{ fontStyle: "italic", fontWeight: 800, fontSize: 19 }}
             >
-              Loja Joselane
+              Super Bonita
             </p>
             <p className="eyebrow" style={{ fontSize: 9 }}>
               Super Bonita · Gestão
