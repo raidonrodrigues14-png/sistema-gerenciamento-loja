@@ -7,7 +7,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
-  Briefcase, CreditCard, Wallet, Tags,
+  Briefcase, CreditCard, Wallet, Tags, MessageCircle,
 } from "lucide-react";
 
 const menu = [
@@ -20,6 +20,7 @@ const menu = [
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/etiquetas", label: "Etiquetas", icon: Tags },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
 ];
 
 export default function AppLayout({ children }) {
