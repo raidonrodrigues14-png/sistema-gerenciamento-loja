@@ -1,38 +1,220 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,700;1,800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-slate-100 text-slate-800 antialiased;
+/* ============================================================
+   LOJA JOSELANE — Super Bonita
+   Dark & luxe design tokens
+   ============================================================ */
+
+:root {
+  --bg: oklch(0.158 0.004 60);
+  --bg-2: oklch(0.135 0.004 50);
+  --surface: oklch(0.205 0.005 60);
+  --surface-2: oklch(0.245 0.006 65);
+  --surface-3: oklch(0.295 0.007 65);
+
+  --line: rgba(255, 255, 255, 0.075);
+  --line-2: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.2);
+
+  --tx: oklch(0.965 0.004 80);
+  --tx-2: oklch(0.74 0.006 80);
+  --tx-3: oklch(0.56 0.006 75);
+  --tx-4: oklch(0.44 0.006 70);
+
+  --gold: oklch(0.82 0.072 78);
+  --gold-2: oklch(0.72 0.082 70);
+  --gold-glow: oklch(0.82 0.072 78 / 0.16);
+
+  --chrome: linear-gradient(176deg, #ffffff 0%, #e9e9ee 18%, #b9bac2 40%, #7f8088 52%, #cdced6 66%, #f4f4f8 82%, #a9aab2 100%);
+
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+
+  --ff-serif: "Playfair Display", Georgia, serif;
+  --ff-sans: "Hanken Grotesk", system-ui, sans-serif;
+  --ff-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+body {
+  background: var(--bg-2);
+  color: var(--tx);
+  font-family: var(--ff-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--gold-glow);
+  color: var(--tx);
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--line-strong); background-clip: padding-box; }
+
+h1 {
+  font-family: var(--ff-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.serif { font-family: var(--ff-serif); font-weight: 600; letter-spacing: -0.01em; }
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+}
+
+/* Brushed-chrome text (wordmark) */
+.chrome-text {
+  background: var(--chrome);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  white-space: nowrap;
+  padding-right: 0.2em;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.08));
+}
+
+/* ---------- Componentes ---------- */
 .card {
-  @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
 }
 
 .btn-primary {
-  @apply inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0 18px;
+  height: 42px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  color: #1a1714;
+  background: linear-gradient(176deg, #fdfcf9 0%, #efe9dc 32%, #d8d1c1 62%, #f3eee2 100%);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 10px 26px -14px rgba(0, 0, 0, 0.7);
+  transition: transform 0.12s ease, box-shadow 0.18s ease, opacity 0.18s;
 }
+.btn-primary:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 0 0 1px var(--gold-glow), 0 14px 30px -14px rgba(0, 0, 0, 0.7);
+}
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-ghost {
-  @apply inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-xl border border-slate-300 transition;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 0 18px;
+  height: 42px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--tx-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
+.btn-ghost:hover { color: var(--tx); background: var(--surface-3); border-color: var(--line-strong); }
 
 .input {
-  @apply w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm;
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg);
+  color: var(--tx);
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  font-family: var(--ff-sans);
+  font-size: 14px;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  outline: none;
 }
+.input::placeholder { color: var(--tx-4); }
+.input:focus {
+  border-color: var(--gold-2);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+  background: var(--bg-2);
+}
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b9a98a' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+select.input option { background: var(--surface); color: var(--tx); }
+.input[type="checkbox"] { width: auto; }
+input[type="checkbox"] { accent-color: #c9a961; }
 
 .label {
-  @apply block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5;
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin-bottom: 7px;
 }
 
+/* ---------- Sidebar luxe ---------- */
+.sidebar-luxe {
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+}
+
+.navitem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tx-3);
+  transition: background 0.15s, color 0.15s;
+}
+.navitem:hover { color: var(--tx); background: rgba(255, 255, 255, 0.04); }
+.navitem.active {
+  color: var(--tx);
+  background: linear-gradient(100deg, var(--gold-glow), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 0 0 1px oklch(0.82 0.072 78 / 0.16);
+}
+.navitem.active > svg { color: var(--gold); }
+
+/* ---------- Print: recibo limpo no branco ---------- */
 @media print {
-  .no-print {
-    display: none !important;
+  .no-print { display: none !important; }
+  body { background: #fff !important; color: #1a1714 !important; }
+  .card {
+    background: #fff !important;
+    border-color: #ddd !important;
+    box-shadow: none !important;
   }
-  body {
-    background: white !important;
-  }
+  .card * { color: #1a1714 !important; }
+  .chrome-text { -webkit-text-fill-color: #8a6d3b !important; color: #8a6d3b !important; filter: none; }
 }

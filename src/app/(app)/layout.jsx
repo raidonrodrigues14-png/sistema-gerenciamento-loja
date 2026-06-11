@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
@@ -55,21 +56,39 @@ export default function AppLayout({ children }) {
     <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside
-        className={`no-print fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col transition-transform lg:translate-x-0 ${
+        className={`sidebar-luxe no-print fixed lg:static inset-y-0 left-0 z-40 w-64 flex flex-col transition-transform lg:translate-x-0 ${
           aberto ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
-            <Shirt className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold leading-tight">Loja Joselane</p>
-            <p className="text-xs text-slate-400">Gerenciamento</p>
+        <div
+          className="flex items-center gap-3 px-5 py-5"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
+          <Image
+            src="/superbonita.png"
+            alt="Super Bonita"
+            width={46}
+            height={46}
+            className="rounded-full shrink-0"
+            style={{
+              border: "1px solid rgba(255,255,255,0.14)",
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.6), 0 10px 24px -10px rgba(0,0,0,0.8)",
+            }}
+          />
+          <div className="leading-tight">
+            <p
+              className="chrome-text serif"
+              style={{ fontStyle: "italic", fontWeight: 800, fontSize: 19 }}
+            >
+              Loja Joselane
+            </p>
+            <p className="eyebrow" style={{ fontSize: 9 }}>
+              Super Bonita · Gestão
+            </p>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {menu.map(({ href, label, icon: Icon }) => {
             const ativo = pathname.startsWith(href);
             return (
@@ -77,13 +96,9 @@ export default function AppLayout({ children }) {
                 key={href}
                 href={href}
                 onClick={() => setAberto(false)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
-                  ativo
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-600/30"
-                    : "text-slate-300 hover:bg-white/10"
-                }`}
+                className={`navitem ${ativo ? "active" : ""}`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-5 h-5 shrink-0" />
                 {label}
               </Link>
             );
@@ -92,7 +107,8 @@ export default function AppLayout({ children }) {
 
         <button
           onClick={sair}
-          className="flex items-center gap-3 mx-3 mb-4 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-red-500/20 hover:text-red-300 transition"
+          className="navitem mx-3 mb-4"
+          style={{ width: "auto" }}
         >
           <LogOut className="w-5 h-5" />
           Sair
@@ -100,16 +116,21 @@ export default function AppLayout({ children }) {
       </aside>
 
       {aberto && (
-        <div className="no-print fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setAberto(false)} />
+        <div className="no-print fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setAberto(false)} />
       )}
 
       {/* Conteúdo */}
       <div className="flex-1 min-w-0">
-        <header className="no-print lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setAberto(!aberto)} className="p-2 rounded-lg hover:bg-slate-100">
+        <header
+          className="no-print lg:hidden sticky top-0 z-20 px-4 py-3 flex items-center gap-3"
+          style={{ background: "var(--bg)", borderBottom: "1px solid var(--line)" }}
+        >
+          <button onClick={() => setAberto(!aberto)} className="p-2 rounded-lg hover:bg-slate-50">
             {aberto ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <span className="font-bold">Loja Joselane</span>
+          <span className="chrome-text serif" style={{ fontStyle: "italic", fontWeight: 800, fontSize: 17 }}>
+            Loja Joselane
+          </span>
         </header>
         <main className="p-4 lg:p-8 max-w-7xl mx-auto">{children}</main>
       </div>

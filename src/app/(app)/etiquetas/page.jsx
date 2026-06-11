@@ -127,19 +127,20 @@ export default function Etiquetas() {
       {fila.length > 0 && (
         <div>
           <p className="no-print text-sm font-semibold text-slate-500 mb-2">Pré-visualização:</p>
-          <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-200 print:border-none print:p-0">
+          <div className="flex flex-wrap gap-2 p-4 rounded-2xl border border-slate-200 print:border-none print:p-0" style={{ background: "#f4f1ea" }}>
             {fila.flatMap((item, fi) =>
               Array.from({ length: item.qtd }).map((_, n) => (
                 <div
                   key={`${fi}-${n}`}
-                  className="border border-slate-300 rounded p-2 w-[180px] text-center break-inside-avoid"
+                  className="rounded p-2 w-[180px] text-center break-inside-avoid"
+                  style={{ background: "#fffdf8", border: "1px solid #d8d2c4", color: "#1a1714" }}
                 >
-                  <p className="text-[10px] font-bold truncate">{item.produto.nome}</p>
-                  <p className="text-[9px] text-slate-500">
+                  <p className="text-[10px] font-bold truncate" style={{ color: "#1a1714" }}>{item.produto.nome}</p>
+                  <p className="text-[9px]" style={{ color: "#6b6358" }}>
                     {[item.produto.tamanho, item.produto.cor].filter(Boolean).join(" · ") || " "}
                   </p>
                   <svg id={`bar-${fi}-${n}`} className="mx-auto max-w-full" />
-                  <p className="text-xs font-extrabold">{fmtBRL(item.produto.preco_venda)}</p>
+                  <p className="text-xs font-extrabold" style={{ color: "#1a1714" }}>{fmtBRL(item.produto.preco_venda)}</p>
                 </div>
               ))
             )}

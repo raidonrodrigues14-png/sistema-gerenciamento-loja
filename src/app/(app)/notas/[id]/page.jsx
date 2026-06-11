@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Printer, ArrowLeft, Shirt } from "lucide-react";
+import Image from "next/image";
+import { Printer, ArrowLeft } from "lucide-react";
 
 export default function VerNota() {
   const { id } = useParams();
@@ -36,11 +37,16 @@ export default function VerNota() {
       <div className="card p-8 print:shadow-none print:border-none">
         <div className="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center">
-              <Shirt className="w-6 h-6 text-white" />
-            </div>
+            <Image
+              src="/superbonita.png"
+              alt="Super Bonita"
+              width={48}
+              height={48}
+              className="rounded-full"
+              style={{ border: "1px solid rgba(128,128,128,0.3)" }}
+            />
             <div>
-              <p className="text-xl font-extrabold text-slate-900">Loja Joselane</p>
+              <p className="serif text-xl font-extrabold text-slate-900" style={{ fontStyle: "italic" }}>Loja Joselane</p>
               <p className="text-sm text-slate-400">Nota de venda</p>
             </div>
           </div>
