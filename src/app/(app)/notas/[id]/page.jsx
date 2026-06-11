@@ -46,7 +46,7 @@ export default function VerNota() {
               style={{ border: "1px solid rgba(128,128,128,0.3)" }}
             />
             <div>
-              <p className="serif text-xl font-extrabold text-slate-900" style={{ fontStyle: "italic" }}>Loja Joselane</p>
+              <p className="serif text-xl font-extrabold text-slate-900" style={{ fontStyle: "italic" }}>Super Bonita</p>
               <p className="text-sm text-slate-400">Nota de venda</p>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function VerNota() {
         )}
 
         <p className="mt-8 text-center text-xs text-slate-400">
-          Obrigado pela preferência! ♥
+          Obrigado pela preferência! 
         </p>
       </div>
     </div>
