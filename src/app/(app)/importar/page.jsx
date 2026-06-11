@@ -14,7 +14,7 @@ function tag(el, nome) {
 const TAMANHOS = ["PP", "P", "M", "G", "GG", "XG", "XGG", "EXG", "EG", "G1", "G2", "G3", "U", "UN"];
 const NUMERICOS = /^(3[4-9]|4[0-9]|5[0-8])$/;
 
-function detectarTamanho(texto) {
+function detectarTamanho(texto, codigo) {
   const t = (texto || "").toUpperCase();
   // padrão "TAM M", "TAM: G", "TAM. 42", "TAMANHO GG"
   const m = t.match(/TAM(?:ANHO)?[\s.:\-]*([A-Z0-9]{1,3})\b/);
@@ -24,6 +24,10 @@ function detectarTamanho(texto) {
   for (let i = palavras.length - 1; i >= Math.max(0, palavras.length - 3); i--) {
     if (TAMANHOS.includes(palavras[i]) || NUMERICOS.test(palavras[i])) return palavras[i];
   }
+  // sufixo do código do produto: "653-M", "BLU01-GG", "REF_42", "653/G"
+  const c = (codigo || "").toUpperCase();
+  const mc = c.match(/[-_./ ]([A-Z]{1,3}|\d{2})$/);
+  if (mc && (TAMANHOS.includes(mc[1]) || NUMERICOS.test(mc[1]))) return mc[1];
   return "";
 }
 
@@ -76,15 +80,16 @@ export default function ImportarXML() {
           // infAdProd costuma trazer "Tamanho: M / Cor: Preto"
           const infoExtra = tag(det, "infAdProd");
           const textoBusca = `${nome} ${infoExtra}`;
+          const codigo = tag(prod, "cProd");
           return {
             sel: true,
             idx: i,
-            codigo: tag(prod, "cProd"),
+            codigo,
             nome,
             ncm: tag(prod, "NCM"),
             qtd: Math.round(Number(tag(prod, "qCom")) || 1),
             custo,
-            tamanho: detectarTamanho(textoBusca),
+            tamanho: detectarTamanho(textoBusca, codigo),
             cor: detectarCor(textoBusca),
           };
         });
