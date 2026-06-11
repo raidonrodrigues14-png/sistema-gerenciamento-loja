@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X } from "lucide-react";
+
+// bip de confirmação
+function bip(ok = true) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = ok ? 1200 : 280;
+    gain.gain.value = 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + (ok ? 0.12 : 0.3));
+  } catch {}
+}
 
 export default function NovaNota() {
   const router = useRouter();
@@ -23,6 +38,63 @@ export default function NovaNota() {
   });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [scanner, setScanner] = useState(false);
+  const [scanMsg, setScanMsg] = useState("");
+  const videoRef = useRef(null);
+  const controlsRef = useRef(null);
+  const ultimoRef = useRef({ codigo: "", t: 0 });
+  const produtosRef = useRef([]);
+  useEffect(() => { produtosRef.current = produtos; }, [produtos]);
+
+  // liga/desliga a câmera quando o scanner abre/fecha
+  useEffect(() => {
+    if (!scanner) return;
+    let ativo = true;
+
+    (async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        const reader = new BrowserMultiFormatReader();
+        const controls = await reader.decodeFromVideoDevice(
+          undefined,
+          videoRef.current,
+          (result) => {
+            if (!result || !ativo) return;
+            const codigo = result.getText().trim();
+            const agora = Date.now();
+            // evita bipar o mesmo código várias vezes seguidas
+            if (ultimoRef.current.codigo === codigo && agora - ultimoRef.current.t < 2000) return;
+            ultimoRef.current = { codigo, t: agora };
+
+            const p = produtosRef.current.find(
+              (x) => (x.codigo || "").trim().toUpperCase() === codigo.toUpperCase()
+            );
+            if (!p) {
+              bip(false);
+              setScanMsg(`Código "${codigo}" não encontrado no estoque.`);
+            } else if (p.estoque <= 0) {
+              bip(false);
+              setScanMsg(`${p.nome} está sem estoque!`);
+            } else {
+              bip(true);
+              adicionar(p);
+              setScanMsg(`✓ ${p.nome} ${[p.tamanho, p.cor].filter(Boolean).join(" ")} adicionado`);
+            }
+          }
+        );
+        if (!ativo) controls.stop();
+        else controlsRef.current = controls;
+      } catch (e) {
+        setScanMsg("Não consegui acessar a câmera. Verifique a permissão no navegador.");
+      }
+    })();
+
+    return () => {
+      ativo = false;
+      controlsRef.current?.stop();
+      controlsRef.current = null;
+    };
+  }, [scanner]);
 
   useEffect(() => {
     supabase.from("produtos").select("*").order("nome").then(({ data }) => setProdutos(data || []));
@@ -142,14 +214,23 @@ export default function NovaNota() {
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Catálogo de produtos */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input pl-10"
-              placeholder="Buscar roupa por nome, código, tamanho, cor…"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="input pl-10"
+                placeholder="Buscar roupa por nome, código, tamanho, cor…"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => { setScanMsg(""); setScanner(true); }}
+              className="btn-primary shrink-0"
+              title="Ler código de barras com a câmera"
+            >
+              <ScanLine className="w-4 h-4" /> Escanear
+            </button>
           </div>
 
           <div className="card divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
@@ -294,6 +375,56 @@ export default function NovaNota() {
           </div>
         </div>
       </div>
+
+      {/* Scanner de código de barras */}
+      {scanner && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setScanner(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="card w-full max-w-md p-5 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold flex items-center gap-2">
+                <ScanLine className="w-4 h-4 text-violet-600" /> Escanear etiqueta
+              </h2>
+              <button onClick={() => setScanner(false)} className="p-2 rounded-lg hover:bg-slate-50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative rounded-2xl overflow-hidden" style={{ background: "#000" }}>
+              <video ref={videoRef} className="w-full" style={{ maxHeight: 320, objectFit: "cover" }} />
+              <div
+                className="absolute left-6 right-6 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ height: 2, background: "rgba(220,60,60,0.85)", boxShadow: "0 0 12px rgba(220,60,60,0.8)" }}
+              />
+            </div>
+
+            {scanMsg && (
+              <p
+                className={`text-sm rounded-xl p-3 font-medium ${
+                  scanMsg.startsWith("✓") ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {scanMsg}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">
+                {carrinho.reduce((s, i) => s + i.qtd, 0)} peças · {fmtBRL(subtotal)}
+              </span>
+              <button onClick={() => setScanner(false)} className="btn-ghost">
+                Concluir
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Aponte a câmera para o código de barras da etiqueta. Cada leitura adiciona 1 peça à nota — pode bipar a mesma etiqueta de novo para adicionar outra.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
