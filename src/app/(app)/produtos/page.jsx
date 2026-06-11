@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Plus, Search, Pencil, Trash2, FileUp, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileUp, X, LayoutGrid } from "lucide-react";
 
 const vazio = {
   codigo: "", nome: "", categoria: "Geral", tamanho: "", cor: "",
@@ -17,6 +17,11 @@ export default function Produtos() {
   const [form, setForm] = useState(vazio);
   const [editId, setEditId] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  const [modalGrade, setModalGrade] = useState(false);
+  const [grade, setGrade] = useState({
+    nome: "", codigo: "", categoria: "Geral", fornecedor: "",
+    preco_custo: "", preco_venda: "", tamanhos: "P, M, G", cores: "", estoque: 1,
+  });
 
   async function carregar() {
     const { data } = await supabase.from("produtos").select("*").order("nome");
@@ -57,6 +62,35 @@ export default function Produtos() {
     carregar();
   }
 
+  async function salvarGrade(e) {
+    e.preventDefault();
+    setSalvando(true);
+    const tams = grade.tamanhos.split(",").map((t) => t.trim()).filter(Boolean);
+    const cores = grade.cores.split(",").map((c) => c.trim()).filter(Boolean);
+    const listaCores = cores.length ? cores : [null];
+    const linhas = [];
+    for (const tam of tams.length ? tams : [null]) {
+      for (const cor of listaCores) {
+        linhas.push({
+          codigo: [grade.codigo || grade.nome.slice(0, 10).toUpperCase().replace(/\s/g, ""), tam, cor]
+            .filter(Boolean).join("-"),
+          nome: grade.nome,
+          categoria: grade.categoria || "Geral",
+          tamanho: tam,
+          cor: cor,
+          preco_custo: Number(grade.preco_custo || 0),
+          preco_venda: Number(grade.preco_venda || 0),
+          estoque: Number(grade.estoque || 0),
+          fornecedor: grade.fornecedor || null,
+        });
+      }
+    }
+    await supabase.from("produtos").insert(linhas);
+    setSalvando(false);
+    setModalGrade(false);
+    carregar();
+  }
+
   async function excluir(p) {
     if (!confirm(`Excluir "${p.nome}"?`)) return;
     await supabase.from("produtos").delete().eq("id", p.id);
@@ -79,6 +113,12 @@ export default function Produtos() {
           <Link href="/importar" className="btn-ghost">
             <FileUp className="w-4 h-4" /> Importar XML
           </Link>
+          <button
+            onClick={() => setModalGrade(true)}
+            className="btn-ghost"
+          >
+            <LayoutGrid className="w-4 h-4" /> Nova grade
+          </button>
           <button onClick={abrirNovo} className="btn-primary">
             <Plus className="w-4 h-4" /> Novo produto
           </button>
@@ -156,6 +196,83 @@ export default function Produtos() {
           </tbody>
         </table>
       </div>
+
+      {modalGrade && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setModalGrade(false)}>
+          <form
+            onSubmit={salvarGrade}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Nova grade</h2>
+                <p className="text-xs text-slate-400">Cria um produto para cada combinação de tamanho e cor</p>
+              </div>
+              <button type="button" onClick={() => setModalGrade(false)} className="p-2 rounded-lg hover:bg-slate-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="label">Nome da peça *</label>
+              <input className="input" required value={grade.nome} onChange={(e) => setGrade({ ...grade, nome: e.target.value })} placeholder="Ex: Blusa de alcinha canelada" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Referência / Código base</label>
+                <input className="input" value={grade.codigo} onChange={(e) => setGrade({ ...grade, codigo: e.target.value })} placeholder="Ex: BLU001" />
+              </div>
+              <div>
+                <label className="label">Categoria</label>
+                <input className="input" value={grade.categoria} onChange={(e) => setGrade({ ...grade, categoria: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Tamanhos (separados por vírgula) *</label>
+              <input className="input" required value={grade.tamanhos} onChange={(e) => setGrade({ ...grade, tamanhos: e.target.value })} placeholder="P, M, G, GG" />
+            </div>
+            <div>
+              <label className="label">Cores (separadas por vírgula)</label>
+              <input className="input" value={grade.cores} onChange={(e) => setGrade({ ...grade, cores: e.target.value })} placeholder="Preto, Branco, Rosa (deixe vazio se não tiver)" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="label">Custo (R$)</label>
+                <input className="input" type="number" step="0.01" min="0" value={grade.preco_custo} onChange={(e) => setGrade({ ...grade, preco_custo: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Venda (R$) *</label>
+                <input className="input" type="number" step="0.01" min="0" required value={grade.preco_venda} onChange={(e) => setGrade({ ...grade, preco_venda: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Estoque p/ variante</label>
+                <input className="input" type="number" min="0" value={grade.estoque} onChange={(e) => setGrade({ ...grade, estoque: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Fornecedor</label>
+              <input className="input" value={grade.fornecedor} onChange={(e) => setGrade({ ...grade, fornecedor: e.target.value })} />
+            </div>
+
+            <p className="text-xs text-slate-500 bg-violet-50 rounded-xl p-3">
+              Serão criadas{" "}
+              <strong>
+                {(grade.tamanhos.split(",").filter((t) => t.trim()).length || 1) *
+                  (grade.cores.split(",").filter((c) => c.trim()).length || 1)}
+              </strong>{" "}
+              variações desta peça.
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setModalGrade(false)} className="btn-ghost flex-1 justify-center">Cancelar</button>
+              <button type="submit" disabled={salvando} className="btn-primary flex-1 justify-center">
+                {salvando ? "Criando…" : "Criar grade"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {modal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setModal(false)}>

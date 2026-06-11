@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
+  Briefcase, CreditCard, Wallet, Tags,
 } from "lucide-react";
 
 const menu = [
@@ -13,6 +14,10 @@ const menu = [
   { href: "/produtos", label: "Produtos", icon: Shirt },
   { href: "/importar", label: "Importar XML", icon: FileUp },
   { href: "/notas", label: "Notas / Vendas", icon: Receipt },
+  { href: "/malinhas", label: "Malinhas", icon: Briefcase },
+  { href: "/crediario", label: "Crediário", icon: CreditCard },
+  { href: "/financeiro", label: "Financeiro", icon: Wallet },
+  { href: "/etiquetas", label: "Etiquetas", icon: Tags },
   { href: "/clientes", label: "Clientes", icon: Users },
 ];
 

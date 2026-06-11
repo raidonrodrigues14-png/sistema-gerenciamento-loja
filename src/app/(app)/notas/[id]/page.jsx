@@ -10,10 +10,12 @@ export default function VerNota() {
   const router = useRouter();
   const [nota, setNota] = useState(null);
   const [itens, setItens] = useState([]);
+  const [parcelas, setParcelas] = useState([]);
 
   useEffect(() => {
     supabase.from("notas").select("*").eq("id", id).single().then(({ data }) => setNota(data));
     supabase.from("nota_itens").select("*").eq("nota_id", id).then(({ data }) => setItens(data || []));
+    supabase.from("parcelas").select("*").eq("nota_id", id).order("numero").then(({ data }) => setParcelas(data || []));
   }, [id]);
 
   if (!nota) {
@@ -95,6 +97,27 @@ export default function VerNota() {
             </div>
           </div>
         </div>
+
+        {parcelas.length > 0 && (
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-2">
+              Carnê — {parcelas.length} parcelas
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {parcelas.map((p) => (
+                <div key={p.id} className={`rounded-xl border p-3 text-sm ${p.pago ? "border-emerald-200 bg-emerald-50" : "border-slate-200"}`}>
+                  <p className="font-bold">{p.numero}ª — {fmtBRL(p.valor)}</p>
+                  <p className="text-xs text-slate-500">
+                    Venc: {new Date(p.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}
+                  </p>
+                  <p className={`text-xs font-semibold ${p.pago ? "text-emerald-600" : "text-amber-600"}`}>
+                    {p.pago ? "Paga" : "Em aberto"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {nota.observacao && (
           <p className="mt-6 text-sm text-slate-500 border-t border-slate-100 pt-4">

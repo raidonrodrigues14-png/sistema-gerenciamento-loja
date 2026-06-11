@@ -15,6 +15,12 @@ export default function NovaNota() {
   const [pagamento, setPagamento] = useState("Dinheiro");
   const [desconto, setDesconto] = useState("");
   const [obs, setObs] = useState("");
+  const [numParcelas, setNumParcelas] = useState(3);
+  const [primeiroVenc, setPrimeiroVenc] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().slice(0, 10);
+  });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -99,6 +105,24 @@ export default function NovaNota() {
       // baixa estoque
       for (const i of carrinho) {
         await supabase.rpc("baixar_estoque", { p_produto_id: i.produto_id, p_qtd: i.qtd });
+      }
+
+      // gera parcelas do crediário
+      if (pagamento === "Crediário") {
+        const n = Math.max(1, Number(numParcelas));
+        const valorBase = Math.floor((total / n) * 100) / 100;
+        const linhas = [];
+        for (let p = 0; p < n; p++) {
+          const venc = new Date(primeiroVenc + "T12:00:00");
+          venc.setMonth(venc.getMonth() + p);
+          linhas.push({
+            nota_id: nota.id,
+            numero: p + 1,
+            vencimento: venc.toISOString().slice(0, 10),
+            valor: p === n - 1 ? Math.round((total - valorBase * (n - 1)) * 100) / 100 : valorBase,
+          });
+        }
+        await supabase.from("parcelas").insert(linhas);
       }
 
       router.push(`/notas/${nota.id}`);
@@ -214,7 +238,7 @@ export default function NovaNota() {
               <div>
                 <label className="label">Pagamento</label>
                 <select className="input" value={pagamento} onChange={(e) => setPagamento(e.target.value)}>
-                  {["Dinheiro", "Pix", "Cartão de débito", "Cartão de crédito", "Fiado"].map((f) => (
+                  {["Dinheiro", "Pix", "Cartão de débito", "Cartão de crédito", "Crediário"].map((f) => (
                     <option key={f}>{f}</option>
                   ))}
                 </select>
@@ -224,6 +248,22 @@ export default function NovaNota() {
                 <input className="input" type="number" min="0" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} placeholder="0,00" />
               </div>
             </div>
+            {pagamento === "Crediário" && (
+              <div className="grid grid-cols-2 gap-3 bg-violet-50 rounded-xl p-3">
+                <div>
+                  <label className="label">Nº de parcelas</label>
+                  <input className="input" type="number" min="1" max="24" value={numParcelas} onChange={(e) => setNumParcelas(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">1º vencimento</label>
+                  <input className="input" type="date" value={primeiroVenc} onChange={(e) => setPrimeiroVenc(e.target.value)} />
+                </div>
+                <p className="col-span-2 text-xs text-slate-500">
+                  {Math.max(1, Number(numParcelas))}x de {fmtBRL(total / Math.max(1, Number(numParcelas)))}
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="label">Observação</label>
               <input className="input" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
