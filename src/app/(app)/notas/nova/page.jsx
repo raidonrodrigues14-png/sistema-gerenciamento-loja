@@ -46,6 +46,58 @@ export default function NovaNota() {
   const produtosRef = useRef([]);
   useEffect(() => { produtosRef.current = produtos; }, [produtos]);
 
+  // processa um código lido (câmera ou scanner USB)
+  function tratarCodigo(codigo) {
+    const c = (codigo || "").trim();
+    if (!c) return;
+    const p = produtosRef.current.find(
+      (x) => (x.codigo || "").trim().toUpperCase() === c.toUpperCase()
+    );
+    if (!p) {
+      bip(false);
+      setScanMsg(`Código "${c}" não encontrado no estoque.`);
+    } else if (p.estoque <= 0) {
+      bip(false);
+      setScanMsg(`${p.nome} está sem estoque!`);
+    } else {
+      bip(true);
+      adicionar(p);
+      setScanMsg(`✓ ${p.nome} ${[p.tamanho, p.cor].filter(Boolean).join(" ")} adicionado`);
+    }
+  }
+
+  // scanner físico (USB): digita o código muito rápido e termina com Enter
+  useEffect(() => {
+    let buf = "";
+    let ultimaTecla = 0;
+    function onKey(e) {
+      const agora = Date.now();
+      if (agora - ultimaTecla > 100) buf = ""; // digitação humana zera o buffer
+      ultimaTecla = agora;
+      if (e.key === "Enter") {
+        if (buf.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          tratarCodigo(buf);
+          setBusca(""); // limpa o que o scanner "digitou" na busca
+        }
+        buf = "";
+      } else if (e.key.length === 1) {
+        buf += e.key;
+      }
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // aviso do scanner some sozinho depois de 3s
+  useEffect(() => {
+    if (!scanMsg || scanner) return;
+    const t = setTimeout(() => setScanMsg(""), 3000);
+    return () => clearTimeout(t);
+  }, [scanMsg, scanner]);
+
   // liga/desliga a câmera quando o scanner abre/fecha
   useEffect(() => {
     if (!scanner) return;
@@ -65,21 +117,7 @@ export default function NovaNota() {
             // evita bipar o mesmo código várias vezes seguidas
             if (ultimoRef.current.codigo === codigo && agora - ultimoRef.current.t < 2000) return;
             ultimoRef.current = { codigo, t: agora };
-
-            const p = produtosRef.current.find(
-              (x) => (x.codigo || "").trim().toUpperCase() === codigo.toUpperCase()
-            );
-            if (!p) {
-              bip(false);
-              setScanMsg(`Código "${codigo}" não encontrado no estoque.`);
-            } else if (p.estoque <= 0) {
-              bip(false);
-              setScanMsg(`${p.nome} está sem estoque!`);
-            } else {
-              bip(true);
-              adicionar(p);
-              setScanMsg(`✓ ${p.nome} ${[p.tamanho, p.cor].filter(Boolean).join(" ")} adicionado`);
-            }
+            tratarCodigo(codigo);
           }
         );
         if (!ativo) controls.stop();
@@ -208,8 +246,21 @@ export default function NovaNota() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900">Nova nota</h1>
-        <p className="text-slate-500">Selecione as roupas do sistema e gere a nota da venda</p>
+        <p className="text-slate-500">
+          Selecione as roupas, bipe com o leitor de código de barras, ou use a câmera
+        </p>
       </div>
+
+      {/* aviso do scanner USB */}
+      {scanMsg && !scanner && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-xl px-4 py-3 text-sm font-semibold shadow-lg ${
+            scanMsg.startsWith("✓") ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {scanMsg}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Catálogo de produtos */}
