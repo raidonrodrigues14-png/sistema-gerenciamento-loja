@@ -65,7 +65,7 @@ export default function Login() {
             style={{ border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 0 0 1px rgba(0,0,0,0.6)" }}
           />
           <div className="leading-snug">
-            <p className="serif" style={{ fontWeight: 700, fontSize: 16, color: "var(--tx)" }}>Loja Joselane</p>
+            <p className="serif" style={{ fontWeight: 700, fontSize: 16, color: "var(--tx)" }}>Loja Super Bonita</p>
             <p className="eyebrow" style={{ fontSize: 9.5 }}>Gestão da loja</p>
           </div>
         </div>
