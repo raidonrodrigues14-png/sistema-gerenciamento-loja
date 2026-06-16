@@ -7,7 +7,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
-  Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator,
+  Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen,
 } from "lucide-react";
 
 const menu = [
@@ -17,6 +17,7 @@ const menu = [
   { href: "/notas", label: "Notas / Vendas", icon: Receipt },
   { href: "/malinhas", label: "Malinhas", icon: Briefcase },
   { href: "/crediario", label: "Crediário", icon: CreditCard },
+  { href: "/carne", label: "Carnê", icon: BookOpen },
   { href: "/caixa", label: "Caixa do dia", icon: Calculator },
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/etiquetas", label: "Etiquetas", icon: Tags },
