@@ -198,10 +198,16 @@ export default function CarnePage() {
 
     async function load() {
       setCarregando(true);
-      const [{ data: nts }, { data: parc }] = await Promise.all([
-        supabase.from("notas").select("id,numero,cliente_nome,total,forma_pagamento").order("numero", { ascending: false }),
-        supabase.from("parcelas").select("*").order("numero"),
-      ]);
+      const { data: nts, error: errN } = await supabase
+        .from("notas")
+        .select("*")
+        .order("criado_em", { ascending: false });
+      const { data: parc, error: errP } = await supabase
+        .from("parcelas")
+        .select("*")
+        .order("numero");
+      if (errN) console.error("Erro notas:", errN);
+      if (errP) console.error("Erro parcelas:", errP);
       setNotas(nts || []);
       setParcelas(parc || []);
       setCarregando(false);
@@ -301,8 +307,20 @@ export default function CarnePage() {
         {carregando && (
           <p style={{ color: "var(--tx-4)", fontSize: 13, marginTop: 10 }}>Carregando notas…</p>
         )}
-        {!carregando && notasFiltradas.length === 0 && (
-          <p style={{ color: "var(--tx-4)", fontSize: 13, marginTop: 10 }}>Nenhuma nota encontrada para "{busca}".</p>
+        {!carregando && notas.length === 0 && (
+          <p style={{ color: "#f87171", fontSize: 13, marginTop: 10 }}>
+            ⚠️ Nenhuma nota carregada. Verifique se há notas cadastradas no sistema.
+          </p>
+        )}
+        {!carregando && notas.length > 0 && notasFiltradas.length === 0 && busca && (
+          <p style={{ color: "var(--tx-4)", fontSize: 13, marginTop: 10 }}>
+            Nenhuma nota encontrada para "<strong>{busca}</strong>". {notas.length} nota(s) no sistema.
+          </p>
+        )}
+        {!carregando && notas.length > 0 && !busca && (
+          <p style={{ color: "var(--tx-4)", fontSize: 12, marginTop: 8 }}>
+            {notas.length} nota(s) carregada(s). Use a busca acima ou selecione diretamente.
+          </p>
         )}
       </div>
 
