@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import Image from "next/image";
-import { Printer, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { Printer, ArrowLeft, BookOpen } from "lucide-react";
 
 export default function VerNota() {
   const { id } = useParams();
@@ -29,9 +30,16 @@ export default function VerNota() {
         <button onClick={() => router.push("/notas")} className="btn-ghost">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </button>
-        <button onClick={() => window.print()} className="btn-primary">
-          <Printer className="w-4 h-4" /> Imprimir
-        </button>
+        <div className="flex gap-2">
+          {parcelas.length > 0 && (
+            <Link href={`/carne?nota=${nota.id}`} className="btn-ghost">
+              <BookOpen className="w-4 h-4" /> Imprimir Boletas
+            </Link>
+          )}
+          <button onClick={() => window.print()} className="btn-primary">
+            <Printer className="w-4 h-4" /> Imprimir
+          </button>
+        </div>
       </div>
 
       <div className="card p-8 print:shadow-none print:border-none">

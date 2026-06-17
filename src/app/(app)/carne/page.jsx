@@ -288,6 +288,14 @@ export default function CarnePage() {
       setNotas(nts || []);
       setParcelas(parc || []);
       setCarregando(false);
+
+      // Se veio de outra tela com ?nota=ID, já seleciona aquela nota
+      try {
+        const notaId = new URLSearchParams(window.location.search).get("nota");
+        if (notaId && (nts || []).some((n) => n.id === notaId)) {
+          setNotaSel(notaId);
+        }
+      } catch (_) {}
     }
     load();
   }, []);

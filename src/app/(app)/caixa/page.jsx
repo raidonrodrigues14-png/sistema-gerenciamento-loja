@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import {
   Banknote, QrCode, CreditCard, Briefcase, CalendarClock,
-  TrendingDown, Printer, Wallet, Receipt, Plus, X, ChevronDown,
+  TrendingDown, Printer, Wallet, Receipt, Plus, X, ChevronDown, BookOpen,
 } from "lucide-react";
 
 function hojeISO() {
@@ -358,6 +358,9 @@ export default function Caixa() {
           >
             <Plus size={15} /> Registrar Recebimento
           </button>
+          <Link href="/carne" className="btn-ghost" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <BookOpen size={15} /> Imprimir Boletas
+          </Link>
           <button onClick={() => window.print()} className="btn-ghost">
             <Printer className="w-4 h-4" /> Imprimir
           </button>
