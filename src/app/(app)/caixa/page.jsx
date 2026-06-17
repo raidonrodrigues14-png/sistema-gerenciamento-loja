@@ -255,12 +255,13 @@ export default function Caixa() {
   const [parcelas, setParcelas] = useState([]);
   const [lancamentos, setLancamentos] = useState([]);
   const [pagParc, setPagParc] = useState([]); // pagamentos parciais do dia
+  const [todosPagamentos, setTodosPagamentos] = useState([]); // histórico completo, p/ calcular saldo
   const [showModal, setShowModal] = useState(false);
 
   async function carregar() {
     const ini = new Date(dia + "T00:00:00");
     const fim = new Date(dia + "T23:59:59.999");
-    const [n, p, l, pp] = await Promise.all([
+    const [n, p, l, pp, tp] = await Promise.all([
       supabase.from("notas").select("*")
         .gte("criado_em", ini.toISOString()).lte("criado_em", fim.toISOString())
         .order("criado_em"),
@@ -269,11 +270,13 @@ export default function Caixa() {
       supabase.from("pagamentos_parcela")
         .select("*, parcelas(numero, valor, nota_id, notas(numero, cliente_nome))")
         .eq("data", dia),
+      supabase.from("pagamentos_parcela").select("parcela_id, valor"),
     ]);
     setNotas(n.data || []);
     setParcelas(p.data || []);
     setLancamentos(l.data || []);
     setPagParc(pp.data || []);
+    setTodosPagamentos(tp.data || []);
   }
 
   useEffect(() => { carregar(); }, [dia]);
@@ -289,6 +292,40 @@ export default function Caixa() {
   const crediarioVendido = somaForma("Crediário");
   const crediarioRecebido = parcelas.reduce((s, p) => s + Number(p.valor), 0);
   const pagParcTotal = pagParc.reduce((s, pp) => s + Number(pp.valor), 0);
+
+  // Total já pago (todo o histórico) de uma parcela específica
+  function totalPagoParcela(parcelaId) {
+    return todosPagamentos
+      .filter((pg) => pg.parcela_id === parcelaId)
+      .reduce((s, pg) => s + Number(pg.valor), 0);
+  }
+
+  // Detalhe de quem pagou o quê hoje no crediário, e quanto ainda resta por parcela
+  const detalheCrediario = [
+    ...parcelas.map((p) => ({
+      id: "quit-" + p.id,
+      cliente: p.notas?.cliente_nome,
+      notaNum: p.notas?.numero,
+      parcelaNum: p.numero,
+      valorPagoHoje: Number(p.valor),
+      restante: 0,
+      forma: null,
+    })),
+    ...pagParc.map((pp) => {
+      const parc = pp.parcelas;
+      const pago = totalPagoParcela(pp.parcela_id);
+      const restante = Math.max(0, Number(parc?.valor || 0) - pago);
+      return {
+        id: "parc-" + pp.id,
+        cliente: parc?.notas?.cliente_nome,
+        notaNum: parc?.notas?.numero,
+        parcelaNum: parc?.numero,
+        valorPagoHoje: Number(pp.valor),
+        restante,
+        forma: pp.forma,
+      };
+    }),
+  ];
   const entradasManuais = lancamentos.filter((l) => l.tipo === "entrada").reduce((s, l) => s + Number(l.valor), 0);
   const saidas = lancamentos.filter((l) => l.tipo === "saida").reduce((s, l) => s + Number(l.valor), 0);
 
@@ -344,13 +381,37 @@ export default function Caixa() {
             </p>
             <div className="space-y-3">
               {linhas.map(({ rotulo, valor, icon: Icon }) => (
-                <div key={rotulo} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2.5 text-slate-600">
-                    <Icon className="w-4 h-4 text-violet-600" /> {rotulo}
-                  </span>
-                  <span className={`font-bold ${valor > 0 ? "text-slate-900" : "text-slate-400"}`}>
-                    {fmtBRL(valor)}
-                  </span>
+                <div key={rotulo}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2.5 text-slate-600">
+                      <Icon className="w-4 h-4 text-violet-600" /> {rotulo}
+                    </span>
+                    <span className={`font-bold ${valor > 0 ? "text-slate-900" : "text-slate-400"}`}>
+                      {fmtBRL(valor)}
+                    </span>
+                  </div>
+
+                  {/* Detalhe: quem pagou o quê no crediário e quanto falta */}
+                  {rotulo === "Crediário recebido (parcelas)" && detalheCrediario.length > 0 && (
+                    <div style={{ marginTop: 6, marginBottom: 4, paddingLeft: 4, borderLeft: "2px solid var(--line-2)" }}>
+                      {detalheCrediario.map((d) => (
+                        <div key={d.id} style={{ padding: "5px 0 5px 10px", fontSize: 11.5 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                            <span style={{ color: "var(--tx-2)", fontWeight: 600 }}>
+                              {d.cliente} <span style={{ color: "var(--tx-4)", fontWeight: 400 }}>· {d.parcelaNum}ª parcela (Nota #{d.notaNum})</span>
+                            </span>
+                            <span style={{ color: "#34d399", fontWeight: 700, whiteSpace: "nowrap" }}>+ {fmtBRL(d.valorPagoHoje)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1 }}>
+                            <span style={{ color: "var(--tx-4)" }}>{d.forma || "—"}</span>
+                            <span style={{ fontWeight: 700, color: d.restante <= 0.01 ? "#34d399" : "#fbbf24" }}>
+                              {d.restante <= 0.01 ? "✅ Quitada" : `Falta ${fmtBRL(d.restante)}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="flex items-center justify-between text-sm border-t border-slate-200 pt-3">
@@ -416,8 +477,11 @@ export default function Caixa() {
                 {parcelas.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="px-5 py-3 text-slate-500">—</td>
-                    <td className="px-5 py-3 font-medium">
-                      Parcela {p.numero}ª quitada — Nota #{p.notas?.numero} ({p.notas?.cliente_nome})
+                    <td className="px-5 py-3">
+                      <p className="font-medium">
+                        Parcela {p.numero}ª quitada — Nota #{p.notas?.numero} ({p.notas?.cliente_nome})
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: "#34d399", fontWeight: 600 }}>✅ Quitada — não falta nada</p>
                     </td>
                     <td className="px-5 py-3 text-slate-500">Crediário</td>
                     <td className="px-5 py-3 text-right font-bold text-emerald-600">+ {fmtBRL(p.valor)}</td>
@@ -428,6 +492,8 @@ export default function Caixa() {
                 {pagParc.map((pp) => {
                   const parc = pp.parcelas;
                   const nota = parc?.notas;
+                  const pago = totalPagoParcela(pp.parcela_id);
+                  const restante = Math.max(0, Number(parc?.valor || 0) - pago);
                   return (
                     <tr key={pp.id} className="hover:bg-slate-50">
                       <td className="px-5 py-3 text-slate-500">—</td>
@@ -438,6 +504,9 @@ export default function Caixa() {
                         {pp.observacao && (
                           <p className="text-xs text-slate-400 mt-0.5">{pp.observacao}</p>
                         )}
+                        <p className="text-xs mt-0.5" style={{ color: restante <= 0.01 ? "#34d399" : "#d97706", fontWeight: 600 }}>
+                          {restante <= 0.01 ? "✅ Parcela quitada" : `Ainda faltam ${fmtBRL(restante)}`}
+                        </p>
                       </td>
                       <td className="px-5 py-3 text-slate-500">{pp.forma}</td>
                       <td className="px-5 py-3 text-right font-bold text-amber-500">+ {fmtBRL(pp.valor)}</td>
