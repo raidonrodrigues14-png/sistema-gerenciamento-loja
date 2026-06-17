@@ -5,9 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import LicencaPainel from "./licenca/LicencaPainel";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
-  Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen,
+  Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
 } from "lucide-react";
 
 const menu = [
@@ -23,13 +24,27 @@ const menu = [
   { href: "/etiquetas", label: "Etiquetas", icon: Tags },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { href: "/licenca", label: "Licença", icon: KeyRound },
 ];
+
+function hojeISO() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+function somarDias(dataISO, dias) {
+  const d = new Date(dataISO + "T12:00:00");
+  d.setDate(d.getDate() + Number(dias || 0));
+  return d.toISOString().slice(0, 10);
+}
 
 export default function AppLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [pronto, setPronto] = useState(false);
   const [aberto, setAberto] = useState(false);
+  const [licencaBloqueada, setLicencaBloqueada] = useState(false);
+  const [checandoLicenca, setChecandoLicenca] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,17 +57,57 @@ export default function AppLayout({ children }) {
     return () => sub.subscription.unsubscribe();
   }, [router]);
 
+  async function checarLicenca() {
+    setChecandoLicenca(true);
+    try {
+      const { data: cfg, error: errCfg } = await supabase
+        .from("licenca_config")
+        .select("dias_validade")
+        .eq("id", 1)
+        .maybeSingle();
+      if (errCfg || !cfg) {
+        // Tabela ainda não criada (migração não rodada) — não bloqueia o sistema
+        setLicencaBloqueada(false);
+        return;
+      }
+      const { data: ultimo, error: errPag } = await supabase
+        .from("pagamentos_licenca")
+        .select("data")
+        .order("data", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (errPag || !ultimo) {
+        setLicencaBloqueada(false);
+        return;
+      }
+      const venceEm = somarDias(ultimo.data, cfg.dias_validade);
+      setLicencaBloqueada(venceEm < hojeISO());
+    } catch (_) {
+      setLicencaBloqueada(false);
+    } finally {
+      setChecandoLicenca(false);
+    }
+  }
+
+  useEffect(() => {
+    if (pronto) checarLicenca();
+  }, [pronto]);
+
   async function sair() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
-  if (!pronto) {
+  if (!pronto || checandoLicenca) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-slate-400 font-medium">Carregando…</div>
       </div>
     );
+  }
+
+  if (licencaBloqueada) {
+    return <LicencaPainel modoBloqueio onLiberado={() => setLicencaBloqueada(false)} onSair={sair} />;
   }
 
   return (

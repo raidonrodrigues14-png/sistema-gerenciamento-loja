@@ -33,6 +33,15 @@ export default function Login() {
     setCarregando(false);
   }
 
+  async function entrarComGoogle() {
+    setErro("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) setErro(error.message);
+  }
+
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_0.95fr]">
       {/* Painel da marca */}
@@ -114,7 +123,7 @@ export default function Login() {
             <h1 className="text-3xl mb-1" style={{ color: "var(--tx)" }}>
               {modo === "login" ? "Entrar" : "Nova conta"}
             </h1>
-            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Loja Joselane.</p>
+            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Super <Bonita></Bonita>.</p>
           </div>
 
           <div>
@@ -147,6 +156,36 @@ export default function Login() {
           <button type="submit" disabled={carregando} className="btn-primary w-full" style={{ height: 46 }}>
             {carregando ? "Entrando…" : modo === "login" ? "Entrar no painel" : "Criar conta"}
             {!carregando && <ChevronRight className="w-4 h-4" />}
+          </button>
+
+          <div className="flex items-center gap-3" style={{ margin: "14px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "var(--line-2)" }} />
+            <span style={{ fontSize: 12, color: "var(--tx-4)" }}>ou</span>
+            <div style={{ flex: 1, height: 1, background: "var(--line-2)" }} />
+          </div>
+
+          <button
+            type="button"
+            onClick={entrarComGoogle}
+            className="w-full flex items-center justify-center gap-3"
+            style={{
+              height: 46,
+              borderRadius: 12,
+              background: "var(--surface-2)",
+              border: "1px solid var(--line-2)",
+              color: "var(--tx)",
+              fontWeight: 600,
+              fontSize: 13.5,
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.6-.2-3.1-.4-4.5z"/>
+              <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7 29.5 5 24 5c-7.8 0-14.5 4.4-17.7 10.7z"/>
+              <path fill="#4CAF50" d="M24 45.5c5.4 0 10.3-1.8 13.7-5.4l-6.3-5.3c-2 1.4-4.6 2.2-7.4 2.2-5.3 0-9.7-3.3-11.3-8l-6.6 5.1C8.7 40.7 15.7 45.5 24 45.5z"/>
+              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.3 5.3C40.9 36.6 44.5 31.4 44.5 25c0-1.6-.2-3.1-.4-4.5z"/>
+            </svg>
+            Entrar com o Google
           </button>
 
           <button
