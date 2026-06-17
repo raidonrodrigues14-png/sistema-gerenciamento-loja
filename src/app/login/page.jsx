@@ -123,7 +123,7 @@ export default function Login() {
             <h1 className="text-3xl mb-1" style={{ color: "var(--tx)" }}>
               {modo === "login" ? "Entrar" : "Nova conta"}
             </h1>
-            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Super <Bonita></Bonita>.</p>
+            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Super Bonita.</p>
           </div>
 
           <div>
