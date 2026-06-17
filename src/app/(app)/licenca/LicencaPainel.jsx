@@ -36,18 +36,35 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
 
   const [formCfg, setFormCfg] = useState(null);
   const [formPag, setFormPag] = useState({ data: hojeISO(), valor: "", observacao: "" });
+  const [erroTabela, setErroTabela] = useState(false);
+
+  const cfgPadrao = {
+    id: 1, chave_pix: "", tipo_chave: "aleatoria",
+    nome_beneficiario: "Super Bonita", cidade: "Fortaleza",
+    valor_mensalidade: 0, dias_validade: 30,
+  };
 
   async function carregar() {
     setCarregando(true);
-    const [{ data: c }, { data: pg }] = await Promise.all([
-      supabase.from("licenca_config").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("pagamentos_licenca").select("*").order("data", { ascending: false }),
-    ]);
-    setCfg(c || null);
-    setFormCfg(c || null);
-    setPagamentos(pg || []);
-    setFormPag((p) => ({ ...p, valor: c?.valor_mensalidade ? String(c.valor_mensalidade).replace(".", ",") : p.valor }));
-    setCarregando(false);
+    try {
+      const [{ data: c, error: e1 }, { data: pg, error: e2 }] = await Promise.all([
+        supabase.from("licenca_config").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("pagamentos_licenca").select("*").order("data", { ascending: false }),
+      ]);
+      if (e1 || e2) setErroTabela(true);
+      else setErroTabela(false);
+      const cFinal = c || cfgPadrao;
+      setCfg(cFinal);
+      setFormCfg(cFinal);
+      setPagamentos(pg || []);
+      setFormPag((p) => ({ ...p, valor: cFinal.valor_mensalidade ? String(cFinal.valor_mensalidade).replace(".", ",") : p.valor }));
+    } catch (_) {
+      setErroTabela(true);
+      setCfg(cfgPadrao);
+      setFormCfg(cfgPadrao);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   useEffect(() => { carregar(); }, []);
@@ -55,6 +72,14 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   if (carregando || !cfg) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "var(--tx-4)" }}>Carregando licença…</div>
+    );
+  }
+
+  if (erroTabela) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "var(--tx-3)", maxWidth: 420, margin: "0 auto" }}>
+        ⚠️ Não consegui acessar as tabelas de licença no Supabase. Rode o arquivo <code>supabase/licenca.sql</code> no SQL Editor do Supabase e recarregue a página.
+      </div>
     );
   }
 
