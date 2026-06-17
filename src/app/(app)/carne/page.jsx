@@ -18,18 +18,54 @@ function crc16(str) {
   }
   return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
 }
+// Remove acentos e caracteres não permitidos pelo padrão Pix (apenas A-Z 0-9 espaço)
+function limparTexto(str, max) {
+  const combining = new RegExp("[\\u0300-\\u036f]", "g");
+  const semAcento = String(str || "")
+    .normalize("NFD")
+    .replace(combining, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, "")
+    .trim();
+  return (semAcento || "NA").slice(0, max);
+}
+
+// Formata a chave Pix de acordo com o tipo (regra do Bacen p/ a chave ser reconhecida)
+function formatarChavePix(chave, tipo) {
+  const v = String(chave || "").trim();
+  const digitos = v.replace(/\D/g, "");
+  switch (tipo) {
+    case "cpf":
+    case "cnpj":
+      return digitos; // só números, sem ponto/traço/barra
+    case "telefone": {
+      // remove tudo que não é número, remove DDI duplicado e garante +55DDDNUMERO
+      let d = digitos.replace(/^0+/, "");
+      if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+      return `+55${d}`;
+    }
+    case "email":
+      return v.toLowerCase();
+    case "aleatoria":
+    default:
+      return v; // chave aleatória (EVP) já vem no formato correto (uuid)
+  }
+}
+
 function gerarPixPayload({ chave, nome, cidade, valor, txid }) {
-  const ma = tlv("00", "BR.GOV.BCB.PIX") + tlv("01", chave);
-  const ad = tlv("05", txid || "***");
+  const chaveLimpa = String(chave || "").trim();
+  const ma = tlv("00", "BR.GOV.BCB.PIX") + tlv("01", chaveLimpa);
+  const txidLimpo = (txid || "***").toUpperCase().replace(/[^A-Z0-9*]/g, "").slice(0, 25) || "***";
+  const ad = tlv("05", txidLimpo);
   const body =
     tlv("00", "01") + tlv("26", ma) + tlv("52", "0000") + tlv("53", "986") +
     (valor ? tlv("54", Number(valor).toFixed(2)) : "") +
-    tlv("58", "BR") + tlv("59", nome.slice(0, 25)) +
-    tlv("60", cidade.slice(0, 15)) + tlv("62", ad) + "6304";
+    tlv("58", "BR") + tlv("59", limparTexto(nome, 25)) +
+    tlv("60", limparTexto(cidade, 15)) + tlv("62", ad) + "6304";
   return body + crc16(body);
 }
 function qrUrl(text) {
-  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=160x160&margin=4`;
+  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=300x300&margin=10&ecc=H&format=png`;
 }
 
 // ─── Código de Barras ─────────────────────────────────────────────────────────
@@ -50,15 +86,21 @@ function Barcode({ value }) {
 
 // ─── Slip individual ──────────────────────────────────────────────────────────
 function Slip({ p, nota, cfg, total }) {
-  const pixPayload = cfg.chave_pix
+  const chaveFormatada = cfg.chave_pix ? formatarChavePix(cfg.chave_pix, cfg.tipo_chave || "aleatoria") : "";
+  const pixPayload = chaveFormatada
     ? gerarPixPayload({
-        chave: cfg.chave_pix,
+        chave: chaveFormatada,
         nome: cfg.nome_loja || "Super Bonita",
         cidade: cfg.cidade_loja || "Fortaleza",
         valor: p.valor,
         txid: `N${nota.numero}P${p.numero}`,
       })
     : null;
+
+  function copiarCodigo() {
+    if (!pixPayload) return;
+    try { navigator.clipboard.writeText(pixPayload); } catch (_) {}
+  }
 
   const barVal = `${String(nota.numero).padStart(6, "0")}${String(p.numero).padStart(2, "0")}${p.vencimento.replace(/-/g, "")}`;
   const venc = new Date(p.vencimento + "T12:00:00").toLocaleDateString("pt-BR");
@@ -117,12 +159,29 @@ function Slip({ p, nota, cfg, total }) {
         {pixPayload && (
           <div style={{ textAlign: "center", flexShrink: 0 }}>
             <p style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600, margin: "0 0 4px 0" }}>PAGUE VIA PIX</p>
-            <img src={qrUrl(pixPayload)} alt="QR PIX" width={80} height={80}
+            <img src={qrUrl(pixPayload)} alt="QR PIX" width={92} height={92}
               style={{ borderRadius: 6, border: "1px solid #e5e7eb", display: "block" }} />
             <p style={{ fontSize: 8, color: "#7c3aed", margin: "2px 0 0 0" }}>Escaneie o QR Code</p>
           </div>
         )}
       </div>
+
+      {pixPayload && (
+        <div className="no-print" style={{ marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 10px" }}>
+          <p style={{ fontSize: 8.5, color: "#9ca3af", fontWeight: 600, margin: "0 0 3px 0" }}>
+            CÂMERA NÃO LEU O QR? Use o "Pix Copia e Cola" no app do banco:
+          </p>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <p style={{ fontSize: 8, color: "#374151", margin: 0, wordBreak: "break-all", flex: 1, fontFamily: "monospace" }}>
+              {pixPayload}
+            </p>
+            <button type="button" onClick={copiarCodigo}
+              style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+              Copiar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ borderTop: "1px dashed #e2e8f0", marginTop: 10, paddingTop: 6, display: "flex", justifyContent: "space-between" }}>
         <p style={{ fontSize: 8, color: "#9ca3af", margin: 0 }}>✂ Recorte aqui</p>
@@ -151,9 +210,27 @@ function ConfigModal({ cfg, onSave, onClose }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
+            <label className="label">Tipo de chave PIX</label>
+            <select className="input" value={form.tipo_chave || "aleatoria"} onChange={f("tipo_chave")}>
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="telefone">Telefone</option>
+              <option value="email">E-mail</option>
+              <option value="aleatoria">Chave aleatória (EVP)</option>
+            </select>
+          </div>
+          <div>
             <label className="label">Chave PIX</label>
-            <input className="input" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória"
-              value={form.chave_pix} onChange={f("chave_pix")} />
+            <input className="input" type="text" placeholder={
+              form.tipo_chave === "cpf" ? "Ex: 12345678900 (só números)" :
+              form.tipo_chave === "cnpj" ? "Ex: 12345678000199 (só números)" :
+              form.tipo_chave === "telefone" ? "Ex: 85988887777 (DDD + número)" :
+              form.tipo_chave === "email" ? "Ex: loja@email.com" :
+              "Ex: a1b2c3d4-e5f6-..."
+            } value={form.chave_pix} onChange={f("chave_pix")} />
+            <p style={{ fontSize: 11, color: "var(--tx-4)", marginTop: 4 }}>
+              Digite a chave exatamente como está cadastrada no seu banco — sem pontos, traços ou espaços.
+            </p>
           </div>
           <div>
             <label className="label">Nome da loja no PIX (até 25 caracteres)</label>
@@ -187,7 +264,7 @@ export default function CarnePage() {
   const [notaSel, setNotaSel] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
-  const [cfg, setCfg] = useState({ chave_pix: "", nome_loja: "Super Bonita", cidade_loja: "Fortaleza" });
+  const [cfg, setCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Super Bonita", cidade_loja: "Fortaleza" });
 
   useEffect(() => {
     // Carrega config salva
