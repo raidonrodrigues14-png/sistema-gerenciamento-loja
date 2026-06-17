@@ -69,6 +69,17 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
 
   useEffect(() => { carregar(); }, []);
 
+  // Avisa o layout que a licença está em dia (precisa ficar ANTES de qualquer
+  // return condicional, senão viola as Rules of Hooks quando o estado muda)
+  useEffect(() => {
+    if (!cfg) return;
+    const ultimoPagamento = pagamentos[0] || null;
+    const venceEmAgora = ultimoPagamento ? somarDias(ultimoPagamento.data, cfg.dias_validade) : null;
+    const diasRestantesAgora = venceEmAgora ? diffDias(venceEmAgora, hojeISO()) : null;
+    const vencidoAgora = diasRestantesAgora === null || diasRestantesAgora < 0;
+    if (!vencidoAgora && onLiberado) onLiberado();
+  }, [cfg, pagamentos]);
+
   if (carregando || !cfg) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "var(--tx-4)" }}>Carregando licença…</div>
@@ -88,10 +99,6 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const venceEm = ultimoPagamento ? somarDias(ultimoPagamento.data, cfg.dias_validade) : null;
   const diasRestantes = venceEm ? diffDias(venceEm, hoje) : null;
   const vencido = diasRestantes === null || diasRestantes < 0;
-
-  useEffect(() => {
-    if (!vencido && onLiberado) onLiberado();
-  }, [vencido]);
 
   const chaveFormatada = cfg.chave_pix ? formatarChavePix(cfg.chave_pix, cfg.tipo_chave || "aleatoria") : "";
   const pixPayload = chaveFormatada
