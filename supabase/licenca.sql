@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS licenca_config (
   id                 int PRIMARY KEY DEFAULT 1,
   chave_pix          text DEFAULT '',
   tipo_chave         text DEFAULT 'aleatoria',
-  nome_beneficiario  text DEFAULT 'Super Bonita',
+  nome_beneficiario  text DEFAULT 'Elta Variedades',
   cidade             text DEFAULT 'Fortaleza',
   valor_mensalidade  numeric(10,2) DEFAULT 0,
   dias_validade      int DEFAULT 30,

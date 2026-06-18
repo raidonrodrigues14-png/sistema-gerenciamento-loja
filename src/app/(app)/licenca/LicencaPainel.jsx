@@ -40,7 +40,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
 
   const cfgPadrao = {
     id: 1, chave_pix: "", tipo_chave: "aleatoria",
-    nome_beneficiario: "Super Bonita", cidade: "Fortaleza",
+    nome_beneficiario: "Elta Variedades", cidade: "Fortaleza",
     valor_mensalidade: 0, dias_validade: 30,
   };
 
@@ -104,7 +104,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const pixPayload = chaveFormatada
     ? gerarPixPayload({
         chave: chaveFormatada,
-        nome: cfg.nome_beneficiario || "Super Bonita",
+        nome: cfg.nome_beneficiario || "Elta Variedades",
         cidade: cfg.cidade || "Fortaleza",
         valor: cfg.valor_mensalidade,
         txid: "LICENCA",
@@ -331,7 +331,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
     }}>
       <div style={{ maxWidth: 480, margin: "0 auto 16px auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <p className="serif" style={{ fontStyle: "italic", fontWeight: 800, fontSize: 18, color: "var(--tx)", margin: 0 }}>
-          {cfg.nome_beneficiario || "Super Bonita"}
+          {cfg.nome_beneficiario || "Elta Variedades"}
         </p>
         {onSair && (
           <button onClick={onSair} style={{ background: "none", border: "none", color: "var(--tx-3)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>

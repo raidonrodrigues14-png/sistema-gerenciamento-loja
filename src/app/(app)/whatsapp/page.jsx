@@ -16,11 +16,11 @@ function foneWhats(telefone) {
 const modelos = [
   {
     rotulo: "Novidades",
-    texto: "Oi {nome}! 💛 Chegaram peças novas aqui na Loja Joselane e lembrei de você! Quer que eu te mande fotos?",
+    texto: "Oi {nome}! 💛 Chegaram peças novas aqui na Elta Variedades e lembrei de você! Quer que eu te mande fotos?",
   },
   {
     rotulo: "Promoção",
-    texto: "Oi {nome}! Tudo bem? 🎉 Estamos com promoção especial esta semana na Loja Joselane. Vem aproveitar antes que acabe!",
+    texto: "Oi {nome}! Tudo bem? 🎉 Estamos com promoção especial esta semana na Elta Variedades. Vem aproveitar antes que acabe!",
   },
   {
     rotulo: "Malinha",
@@ -28,7 +28,7 @@ const modelos = [
   },
   {
     rotulo: "Cobrança gentil",
-    texto: "Oi {nome}, tudo bem? Passando só pra lembrar da sua parcelinha aqui da Loja Joselane que está em aberto. Qualquer coisa me chama! 💛",
+    texto: "Oi {nome}, tudo bem? Passando só pra lembrar da sua parcelinha aqui da Elta Variedades que está em aberto. Qualquer coisa me chama! 💛",
   },
 ];
 

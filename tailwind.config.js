@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 
-// Paleta remapeada para o tema "Super Bonita" (dark & luxe):
+// Paleta remapeada para o tema "Elta Variedades" (dark & luxe):
 // - white  -> superfície escura dos cards
 // - slate  -> tons quentes de cinza-escuro / texto claro
 // - violet -> dourado champanhe (acento)

@@ -8,7 +8,7 @@ Siga os passos na ordem. Leva uns 15 minutos no total.
 
 1. Acesse **https://supabase.com** e crie uma conta (pode usar o Google).
 2. Clique em **New Project**:
-   - Nome: `loja-joselane`
+   - Nome: `elta-variedades`
    - Database Password: crie uma senha forte e **guarde**
    - Region: `South America (São Paulo)`
 3. Espere o projeto criar (1-2 min).
@@ -41,7 +41,7 @@ Siga os passos na ordem. Leva uns 15 minutos no total.
 
 1. Acesse **https://vercel.com** e entre com a conta do **GitHub**.
 2. Clique em **Add New → Project**.
-3. Selecione o repositório `loja-roupas` (ou o nome que você deu) → **Import**.
+3. Selecione o repositório `elta-variedades` (ou o nome que você deu) → **Import**.
 4. Antes de clicar em Deploy, abra **Environment Variables** e adicione as duas:
 
    | Nome | Valor |
@@ -50,7 +50,7 @@ Siga os passos na ordem. Leva uns 15 minutos no total.
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a anon public key que você copiou |
 
 5. Clique em **Deploy** e aguarde (~2 min).
-6. Pronto! A Vercel vai te dar um link tipo `https://loja-joselane.vercel.app` — esse é o endereço do seu sistema. Acesse e entre com o e-mail/senha que criou no passo 7 da Parte 1.
+6. Pronto! A Vercel vai te dar um link tipo `https://elta-variedades.vercel.app` — esse é o endereço do seu sistema. Acesse e entre com o e-mail/senha que criou no passo 7 da Parte 1.
 
 ---
 

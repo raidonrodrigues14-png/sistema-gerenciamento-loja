@@ -46,15 +46,15 @@ export default function VerNota() {
         <div className="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
             <Image
-              src="/superbonita.png"
-              alt="Super Bonita"
+              src="/elta-variedades.svg"
+              alt="Elta Variedades"
               width={48}
               height={48}
               className="rounded-full"
               style={{ border: "1px solid rgba(128,128,128,0.3)" }}
             />
             <div>
-              <p className="serif text-xl font-extrabold text-slate-900" style={{ fontStyle: "italic" }}>Super Bonita</p>
+              <p className="serif text-xl font-extrabold text-slate-900" style={{ fontStyle: "italic" }}>Elta Variedades</p>
               <p className="text-sm text-slate-400">Nota de venda</p>
             </div>
           </div>

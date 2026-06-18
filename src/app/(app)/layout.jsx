@@ -123,8 +123,8 @@ export default function AppLayout({ children }) {
           style={{ borderBottom: "1px solid var(--line)" }}
         >
           <Image
-            src="/superbonita.png"
-            alt="Super Bonita"
+            src="/elta-variedades.svg"
+            alt="Elta Variedades"
             width={46}
             height={46}
             className="rounded-full shrink-0"
@@ -138,10 +138,10 @@ export default function AppLayout({ children }) {
               className="chrome-text serif"
               style={{ fontStyle: "italic", fontWeight: 800, fontSize: 19 }}
             >
-              Super Bonita
+              Elta Variedades
             </p>
             <p className="eyebrow" style={{ fontSize: 9 }}>
-              Super Bonita · Gestão
+              Elta Variedades · Gestão
             </p>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function AppLayout({ children }) {
             {aberto ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <span className="chrome-text serif" style={{ fontStyle: "italic", fontWeight: 800, fontSize: 17 }}>
-            Loja Joselane
+            Elta Variedades
           </span>
         </header>
         <main className="p-4 lg:p-8 max-w-7xl mx-auto">{children}</main>

@@ -28,7 +28,7 @@ function Slip({ p, nota, cfg, total }) {
   const pixPayload = chaveFormatada
     ? gerarPixPayload({
         chave: chaveFormatada,
-        nome: cfg.nome_loja || "Super Bonita",
+        nome: cfg.nome_loja || "Elta Variedades",
         cidade: cfg.cidade_loja || "Fortaleza",
         valor: p.valor,
         txid: `N${nota.numero}P${p.numero}`,
@@ -52,7 +52,7 @@ function Slip({ p, nota, cfg, total }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px dashed #e2e8f0", paddingBottom: 10, marginBottom: 10 }}>
         <div>
           <p style={{ fontWeight: 900, fontSize: 15, color: "#1e1b4b", fontStyle: "italic", margin: 0 }}>
-            {cfg.nome_loja || "Super Bonita"}
+            {cfg.nome_loja || "Elta Variedades"}
           </p>
           <p style={{ fontSize: 10, color: "#6b7280", margin: 0, marginTop: 1 }}>CARNÊ DE PAGAMENTO</p>
         </div>
@@ -172,7 +172,7 @@ function ConfigModal({ cfg, onSave, onClose }) {
           </div>
           <div>
             <label className="label">Nome da loja no PIX (até 25 caracteres)</label>
-            <input className="input" type="text" placeholder="Ex: Super Bonita"
+            <input className="input" type="text" placeholder="Ex: Elta Variedades"
               value={form.nome_loja} onChange={f("nome_loja")} />
           </div>
           <div>
@@ -202,7 +202,7 @@ export default function CarnePage() {
   const [notaSel, setNotaSel] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
-  const [cfg, setCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Super Bonita", cidade_loja: "Fortaleza" });
+  const [cfg, setCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza" });
 
   useEffect(() => {
     // Carrega config salva
@@ -375,7 +375,7 @@ export default function CarnePage() {
             {/* Cabeçalho visível só no papel */}
             <div style={{ textAlign: "center", marginBottom: 20, paddingBottom: 14, borderBottom: "2px solid #7c3aed" }}>
               <p style={{ fontWeight: 900, fontSize: 20, color: "#1e1b4b", fontStyle: "italic", margin: 0 }}>
-                {cfg.nome_loja || "Super Bonita"}
+                {cfg.nome_loja || "Elta Variedades"}
               </p>
               <p style={{ fontSize: 13, color: "#6b7280", margin: "2px 0" }}>
                 Carnê de Pagamento · Nota #{notaSelecionada.numero}

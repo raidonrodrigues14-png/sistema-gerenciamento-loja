@@ -1,0 +1,56 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,800&amp;family=Hanken+Grotesk:wght@600&amp;display=swap');
+    </style>
+    <radialGradient id="bgGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#3a342c"/>
+      <stop offset="55%" stop-color="#1c1814"/>
+      <stop offset="100%" stop-color="#070605"/>
+    </radialGradient>
+
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf3d8"/>
+      <stop offset="22%" stop-color="#e9cf9a"/>
+      <stop offset="45%" stop-color="#b8924f"/>
+      <stop offset="60%" stop-color="#f3deab"/>
+      <stop offset="78%" stop-color="#c7a467"/>
+      <stop offset="100%" stop-color="#a9824a"/>
+    </linearGradient>
+
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6e6bb"/>
+      <stop offset="50%" stop-color="#a9824a"/>
+      <stop offset="100%" stop-color="#f6e6bb"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- outer dark badge -->
+  <circle cx="200" cy="200" r="190" fill="url(#bgGrad)"/>
+  <circle cx="200" cy="200" r="190" fill="none" stroke="#000" stroke-opacity="0.4" stroke-width="2"/>
+
+  <!-- decorative rings -->
+  <circle cx="200" cy="200" r="164" fill="none" stroke="url(#ringGrad)" stroke-width="2.5" opacity="0.9"/>
+  <circle cx="200" cy="200" r="156" fill="none" stroke="url(#ringGrad)" stroke-width="1" opacity="0.55"/>
+
+  <!-- small flourish dots at ring top/bottom -->
+  <circle cx="200" cy="36" r="3" fill="url(#goldGrad)"/>
+  <circle cx="200" cy="364" r="3" fill="url(#goldGrad)"/>
+
+  <g filter="url(#softShadow)">
+    <text x="200" y="196" text-anchor="middle"
+      font-family="Playfair Display, Georgia, serif" font-style="italic" font-weight="800"
+      font-size="74" fill="url(#goldGrad)" letter-spacing="2">Elta</text>
+
+    <text x="200" y="246" text-anchor="middle"
+      font-family="Hanken Grotesk, Arial, sans-serif" font-weight="600"
+      font-size="22" fill="url(#goldGrad)" letter-spacing="4">VARIEDADES</text>
+  </g>
+
+  <!-- swash underline -->
+  <path d="M120 262 C 160 280, 240 280, 280 262" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+</svg>

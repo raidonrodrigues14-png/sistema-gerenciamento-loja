@@ -1,4 +1,4 @@
-# Loja Joselane — Sistema de Gerenciamento de Loja de Roupas
+# Elta Variedades — Sistema de Gerenciamento de Loja de Roupas
 
 Sistema moderno e completo para gerenciar loja de roupas, feito com **Next.js + Supabase**, pronto para publicar na **Vercel**.
 

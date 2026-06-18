@@ -66,15 +66,15 @@ export default function Login() {
 
         <div className="relative flex items-center gap-3">
           <Image
-            src="/superbonita.png"
-            alt="Super Bonita"
+            src="/elta-variedades.svg"
+            alt="Elta Variedades"
             width={50}
             height={50}
             className="rounded-full"
             style={{ border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 0 0 1px rgba(0,0,0,0.6)" }}
           />
           <div className="leading-snug">
-            <p className="serif" style={{ fontWeight: 700, fontSize: 16, color: "var(--tx)" }}>Loja Super Bonita</p>
+            <p className="serif" style={{ fontWeight: 700, fontSize: 16, color: "var(--tx)" }}>Elta Variedades</p>
             <p className="eyebrow" style={{ fontSize: 9.5 }}>Gestão da loja</p>
           </div>
         </div>
@@ -82,10 +82,10 @@ export default function Login() {
         <div className="relative">
           <div className="mb-14 flex flex-col" style={{ lineHeight: 0.85 }}>
             <span className="chrome-text serif" style={{ fontStyle: "italic", fontWeight: 500, fontSize: 32, marginBottom: 6 }}>
-              Super
+              Elta
             </span>
             <span className="chrome-text serif" style={{ fontStyle: "italic", fontWeight: 800, fontSize: 74 }}>
-              Bonita
+              Variedades
             </span>
           </div>
           <p className="serif" style={{ fontSize: 26, lineHeight: 1.3, color: "var(--tx)", maxWidth: 380, fontWeight: 500 }}>
@@ -109,8 +109,8 @@ export default function Login() {
         <form onSubmit={enviar} className="w-full max-w-sm space-y-4">
           <div className="lg:hidden flex justify-center mb-6">
             <Image
-              src="/superbonita.png"
-              alt="Super Bonita"
+              src="/elta-variedades.svg"
+              alt="Elta Variedades"
               width={72}
               height={72}
               className="rounded-full"
@@ -123,7 +123,7 @@ export default function Login() {
             <h1 className="text-3xl mb-1" style={{ color: "var(--tx)" }}>
               {modo === "login" ? "Entrar" : "Nova conta"}
             </h1>
-            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Super Bonita.</p>
+            <p style={{ color: "var(--tx-2)", fontSize: 14 }}>Acesse o painel da Elta Variedades.</p>
           </div>
 
           <div>
