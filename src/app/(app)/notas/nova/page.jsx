@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X } from "lucide-react";
+import PagamentoPixModal from "@/components/PagamentoPixModal";
 
 // bip de confirmação
 function bip(ok = true) {
@@ -38,6 +39,7 @@ export default function NovaNota() {
   });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [showPix, setShowPix] = useState(false);
   const [scanner, setScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const videoRef = useRef(null);
@@ -180,67 +182,86 @@ export default function NovaNota() {
   const subtotal = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0);
   const total = Math.max(0, subtotal - Number(desconto || 0));
 
+  // Cria de fato a nota no Supabase (itens, baixa de estoque, parcelas do
+  // crediário) e navega para o recibo. Usada tanto pelo fluxo normal quanto
+  // pela confirmação automática do pagamento Pix.
+  async function criarNotaNoSupabase({ formaPagamentoFinal = pagamento, observacaoFinal = obs } = {}) {
+    const cliente = clientes.find((c) => c.id === clienteId);
+    const { data: nota, error } = await supabase
+      .from("notas")
+      .insert({
+        cliente_id: clienteId || null,
+        cliente_nome: cliente ? cliente.nome : "Consumidor Final",
+        subtotal,
+        desconto: Number(desconto || 0),
+        total,
+        forma_pagamento: formaPagamentoFinal,
+        observacao: observacaoFinal || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
+    const itens = carrinho.map((i) => ({
+      nota_id: nota.id,
+      produto_id: i.produto_id,
+      descricao: i.descricao,
+      quantidade: i.qtd,
+      preco_unit: i.preco,
+      total: i.preco * i.qtd,
+    }));
+    const { error: erroItens } = await supabase.from("nota_itens").insert(itens);
+    if (erroItens) throw erroItens;
+
+    // baixa estoque
+    for (const i of carrinho) {
+      await supabase.rpc("baixar_estoque", { p_produto_id: i.produto_id, p_qtd: i.qtd });
+    }
+
+    // gera parcelas do crediário
+    if (formaPagamentoFinal === "Crediário") {
+      const n = Math.max(1, Number(numParcelas));
+      const valorBase = Math.floor((total / n) * 100) / 100;
+      const linhas = [];
+      for (let p = 0; p < n; p++) {
+        const venc = new Date(primeiroVenc + "T12:00:00");
+        venc.setMonth(venc.getMonth() + p);
+        linhas.push({
+          nota_id: nota.id,
+          numero: p + 1,
+          vencimento: venc.toISOString().slice(0, 10),
+          valor: p === n - 1 ? Math.round((total - valorBase * (n - 1)) * 100) / 100 : valorBase,
+        });
+      }
+      await supabase.from("parcelas").insert(linhas);
+    }
+
+    router.push(`/notas/${nota.id}`);
+    return nota;
+  }
+
   async function gerarNota() {
     if (!carrinho.length) return;
+
+    // Pix: abre a tela de pagamento. A nota só é criada quando o pagamento
+    // é confirmado (ver onConfirmado do PagamentoPixModal mais abaixo) — assim
+    // o Fechamento de Caixa só recebe vendas realmente pagas.
+    if (pagamento === "Pix") {
+      setShowPix(true);
+      return;
+    }
+
     setSalvando(true);
     setErro("");
     try {
-      const cliente = clientes.find((c) => c.id === clienteId);
-      const { data: nota, error } = await supabase
-        .from("notas")
-        .insert({
-          cliente_id: clienteId || null,
-          cliente_nome: cliente ? cliente.nome : "Consumidor Final",
-          subtotal,
-          desconto: Number(desconto || 0),
-          total,
-          forma_pagamento: pagamento,
-          observacao: obs || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      const itens = carrinho.map((i) => ({
-        nota_id: nota.id,
-        produto_id: i.produto_id,
-        descricao: i.descricao,
-        quantidade: i.qtd,
-        preco_unit: i.preco,
-        total: i.preco * i.qtd,
-      }));
-      const { error: erroItens } = await supabase.from("nota_itens").insert(itens);
-      if (erroItens) throw erroItens;
-
-      // baixa estoque
-      for (const i of carrinho) {
-        await supabase.rpc("baixar_estoque", { p_produto_id: i.produto_id, p_qtd: i.qtd });
-      }
-
-      // gera parcelas do crediário
-      if (pagamento === "Crediário") {
-        const n = Math.max(1, Number(numParcelas));
-        const valorBase = Math.floor((total / n) * 100) / 100;
-        const linhas = [];
-        for (let p = 0; p < n; p++) {
-          const venc = new Date(primeiroVenc + "T12:00:00");
-          venc.setMonth(venc.getMonth() + p);
-          linhas.push({
-            nota_id: nota.id,
-            numero: p + 1,
-            vencimento: venc.toISOString().slice(0, 10),
-            valor: p === n - 1 ? Math.round((total - valorBase * (n - 1)) * 100) / 100 : valorBase,
-          });
-        }
-        await supabase.from("parcelas").insert(linhas);
-      }
-
-      router.push(`/notas/${nota.id}`);
+      await criarNotaNoSupabase();
     } catch (e) {
       setErro("Erro ao gerar nota: " + (e.message || e));
       setSalvando(false);
     }
   }
+
+  const clienteSelecionado = clientes.find((c) => c.id === clienteId);
 
   return (
     <div className="space-y-6">
@@ -421,7 +442,7 @@ export default function NovaNota() {
               className="btn-primary w-full justify-center"
             >
               <Receipt className="w-4 h-4" />
-              {salvando ? "Gerando nota…" : "Gerar nota"}
+              {salvando ? "Gerando nota…" : pagamento === "Pix" ? "Gerar QR Code Pix" : "Gerar nota"}
             </button>
           </div>
         </div>
@@ -475,6 +496,19 @@ export default function NovaNota() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Tela de pagamento Pix — QR code + confirmação automática */}
+      {showPix && (
+        <PagamentoPixModal
+          valor={total}
+          descricao={`Venda${clienteSelecionado ? " - " + clienteSelecionado.nome : ""}`}
+          cliente={clienteSelecionado}
+          onConfirmado={async () => {
+            await criarNotaNoSupabase({ formaPagamentoFinal: "Pix" });
+          }}
+          onClose={() => setShowPix(false)}
+        />
       )}
     </div>
   );
