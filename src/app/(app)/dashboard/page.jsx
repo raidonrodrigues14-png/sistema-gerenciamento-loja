@@ -139,16 +139,18 @@ function GraficoDesempenho({ pontos, max }) {
     coords.length <= 10 || i % Math.ceil(coords.length / 8) === 0 || i === coords.length - 1;
 
   const ativo = hover != null ? coords[hover] : null;
-  const tooltipW = 132;
+  const tooltipW = 108;
   const tooltipX = ativo ? Math.min(Math.max(ativo.x - tooltipW / 2, 4), largura - tooltipW - 4) : 0;
-  const tooltipY = ativo ? Math.max(ativo.y - 58, 4) : 0;
+  const tooltipY = ativo ? Math.max(ativo.y - 52, 4) : 0;
 
   return (
     <div className="overflow-x-auto">
+      {/* Sem preserveAspectRatio="none": isso esticava a fonte na horizontal e
+          deixava os textos (números, "vendas"...) com aparência alargada.
+          Mantendo a proporção, o texto fica no tamanho real, sem distorção. */}
       <svg
         viewBox={`0 0 ${largura} ${altura}`}
-        style={{ width: "100%", minWidth: 480, height: altura }}
-        preserveAspectRatio="none"
+        style={{ width: largura, maxWidth: "100%", height: "auto", display: "block" }}
       >
         <defs>
           <linearGradient id="areaFillVendas" x1="0" y1="0" x2="0" y2="1">
@@ -164,7 +166,7 @@ function GraficoDesempenho({ pontos, max }) {
               x1={padLeft} y1={n.y} x2={largura - padRight} y2={n.y}
               stroke="#e2e8f0" strokeWidth={1} strokeDasharray={n.ultimo ? "0" : "4 4"}
             />
-            <text x={padLeft - 8} y={n.y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
+            <text x={padLeft - 8} y={n.y + 3} textAnchor="end" fontSize="9" fill="#94a3b8">
               {fmtCompacto(n.valor)}
             </text>
           </g>
@@ -174,13 +176,13 @@ function GraficoDesempenho({ pontos, max }) {
         {coords.length > 0 && (
           <>
             <path d={area} fill="url(#areaFillVendas)" style={{ pointerEvents: "none" }} />
-            <path d={linha} fill="none" stroke="#7c3aed" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: "none" }} />
+            <path d={linha} fill="none" stroke="#7c3aed" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: "none" }} />
           </>
         )}
 
         {/* rótulos do eixo x */}
         {coords.map((p, i) => mostrarLabel(i) && (
-          <text key={"lbl" + i} x={p.x} y={altura - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
+          <text key={"lbl" + i} x={p.x} y={altura - 8} textAnchor="middle" fontSize="9" fill="#94a3b8">
             {p.label}
           </text>
         ))}
@@ -190,8 +192,8 @@ function GraficoDesempenho({ pontos, max }) {
           <circle
             key={"pt" + i}
             cx={p.x} cy={p.y}
-            r={hover === i ? 5 : 3}
-            fill="#fff" stroke="#7c3aed" strokeWidth={hover === i ? 2.5 : 2}
+            r={hover === i ? 4.5 : 2.5}
+            fill="#fff" stroke="#7c3aed" strokeWidth={hover === i ? 2 : 1.5}
             style={{ pointerEvents: "none" }}
           />
         ))}
@@ -215,12 +217,12 @@ function GraficoDesempenho({ pontos, max }) {
         {/* tooltip */}
         {ativo && (
           <g style={{ pointerEvents: "none" }}>
-            <rect x={tooltipX} y={tooltipY} width={tooltipW} height={46} rx={8} fill="#1e1b2e" opacity={0.95} />
-            <text x={tooltipX + tooltipW / 2} y={tooltipY + 18} textAnchor="middle" fontSize="11" fill="#c4b5fd" fontWeight="700">
+            <rect x={tooltipX} y={tooltipY} width={tooltipW} height={40} rx={7} fill="#1e1b2e" opacity={0.95} />
+            <text x={tooltipX + tooltipW / 2} y={tooltipY + 16} textAnchor="middle" fontSize="9.5" fill="#c4b5fd" fontWeight="700">
               {ativo.label}
             </text>
-            <text x={tooltipX + tooltipW / 2} y={tooltipY + 34} textAnchor="middle" fontSize="12" fill="#fff" fontWeight="800">
-              {fmtBRL(ativo.valor)} · {ativo.qtd} venda{ativo.qtd === 1 ? "" : "s"}
+            <text x={tooltipX + tooltipW / 2} y={tooltipY + 30} textAnchor="middle" fontSize="10.5" fill="#fff" fontWeight="800">
+              {fmtBRL(ativo.valor)} · {ativo.qtd}v
             </text>
           </g>
         )}
