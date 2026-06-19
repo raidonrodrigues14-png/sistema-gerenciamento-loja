@@ -614,7 +614,7 @@ export default function NovaNota() {
       {showPixEstatico && (
         <PagamentoPixEstaticoModal
           valor={total}
-          txid={`N${Date.now()}`}
+          txid="***"
           cfg={pixCfg}
           onConfirmar={async () => {
             await criarNotaNoSupabase({ formaPagamentoFinal: "Pix" });
