@@ -6,6 +6,7 @@ import { supabase, fmtBRL } from "@/lib/supabase";
 import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X, Settings } from "lucide-react";
 import PagamentoPixModal from "@/components/PagamentoPixModal";
 import PagamentoPixEstaticoModal from "@/components/PagamentoPixEstaticoModal";
+import PagamentoCartaoModal from "@/components/PagamentoCartaoModal";
 
 // Gera um hash SHA-256 do PIN (não guardamos o PIN em texto puro)
 async function hashPin(pin) {
@@ -237,6 +238,7 @@ export default function NovaNota() {
   const [showPix, setShowPix] = useState(false);
   const [tipoPix] = useState("manual"); // opção "automatico" (AbacatePay) removida da tela; só QR fixo
   const [showPixEstatico, setShowPixEstatico] = useState(false);
+  const [showCartao, setShowCartao] = useState(false);
   const [showConfigPix, setShowConfigPix] = useState(false);
   const [showPinCheck, setShowPinCheck] = useState(false);
   const [pixCfg, setPixCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza" });
@@ -469,6 +471,14 @@ export default function NovaNota() {
       return;
     }
 
+    // Cartão de crédito: não há integração com a maquininha, então a atendente
+    // processa o pagamento nela mesma e só confirma aqui depois — daí a nota é
+    // criada e entra no Caixa do dia (mesma lógica do Pix manual acima).
+    if (pagamento === "Cartão de crédito") {
+      setShowCartao(true);
+      return;
+    }
+
     setSalvando(true);
     setErro("");
     try {
@@ -671,7 +681,13 @@ export default function NovaNota() {
               className="btn-primary w-full justify-center"
             >
               <Receipt className="w-4 h-4" />
-              {salvando ? "Gerando nota…" : pagamento === "Pix" ? "Gerar QR Code Pix" : "Gerar nota"}
+              {salvando
+                ? "Gerando nota…"
+                : pagamento === "Pix"
+                ? "Gerar QR Code Pix"
+                : pagamento === "Cartão de crédito"
+                ? "Processar no cartão"
+                : "Gerar nota"}
             </button>
           </div>
         </div>
@@ -752,6 +768,20 @@ export default function NovaNota() {
           }}
           onClose={() => setShowPixEstatico(false)}
           onConfigurar={() => { setShowPixEstatico(false); setShowConfigPix(true); }}
+        />
+      )}
+
+      {/* Tela de confirmação do cartão de crédito — pagamento processado na maquininha física */}
+      {showCartao && (
+        <PagamentoCartaoModal
+          valor={total}
+          onConfirmar={async (parcelas) => {
+            const obsParcelas = parcelas > 1 ? `Cartão em ${parcelas}x na maquininha` : "Cartão à vista na maquininha";
+            const observacaoFinal = obs ? `${obs} — ${obsParcelas}` : obsParcelas;
+            await criarNotaNoSupabase({ formaPagamentoFinal: "Cartão de crédito", observacaoFinal });
+            setShowCartao(false);
+          }}
+          onClose={() => setShowCartao(false)}
         />
       )}
 
