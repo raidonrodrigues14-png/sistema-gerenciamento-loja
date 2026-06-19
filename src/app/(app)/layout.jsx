@@ -9,13 +9,15 @@ import LicencaPainel from "./licenca/LicencaPainel";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
   Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
+  ShoppingCart,
 } from "lucide-react";
 
 const menu = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/produtos", label: "Produtos", icon: Shirt },
   { href: "/importar", label: "Importar XML", icon: FileUp },
-  { href: "/notas", label: "Notas / Vendas", icon: Receipt },
+  { href: "/notas/nova", label: "Vendas", icon: ShoppingCart },
+  { href: "/notas", label: "Notas", icon: Receipt },
   { href: "/malinhas", label: "Malinhas", icon: Briefcase },
   { href: "/crediario", label: "Crediário", icon: CreditCard },
   { href: "/carne", label: "Carnê", icon: BookOpen },
@@ -148,7 +150,10 @@ export default function AppLayout({ children }) {
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {menu.map(({ href, label, icon: Icon }) => {
-            const ativo = pathname.startsWith(href);
+            const ativo =
+              href === "/notas"
+                ? pathname.startsWith("/notas") && !pathname.startsWith("/notas/nova")
+                : pathname.startsWith(href);
             return (
               <Link
                 key={href}

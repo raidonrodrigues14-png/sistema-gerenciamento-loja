@@ -25,11 +25,11 @@ export default function Notas() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">Notas / Vendas</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900">Notas</h1>
           <p className="text-slate-500">{notas.length} notas geradas</p>
         </div>
         <Link href="/notas/nova" className="btn-primary">
-          <Plus className="w-4 h-4" /> Nova nota
+          <Plus className="w-4 h-4" /> Nova venda
         </Link>
       </div>
 
@@ -80,7 +80,7 @@ export default function Notas() {
             {filtradas.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
-                  Nenhuma nota ainda. Clique em "Nova nota" para gerar a primeira.
+                  Nenhuma nota ainda. Clique em "Nova venda" para gerar a primeira.
                 </td>
               </tr>
             )}

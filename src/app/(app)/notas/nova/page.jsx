@@ -3,8 +3,70 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X, Settings } from "lucide-react";
 import PagamentoPixModal from "@/components/PagamentoPixModal";
+import PagamentoPixEstaticoModal from "@/components/PagamentoPixEstaticoModal";
+
+// ─── Configurar chave Pix da loja (usada no Pix manual/estático) ─────────────
+function ConfigPixModal({ cfg, onSave, onClose }) {
+  const [form, setForm] = useState({ ...cfg });
+  const [salvando, setSalvando] = useState(false);
+  const f = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  async function salvar() {
+    setSalvando(true);
+    await onSave(form);
+    setSalvando(false);
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)", padding: 16 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <p style={{ fontWeight: 700, fontSize: 16, color: "var(--tx)", margin: 0 }}>Chave Pix da loja</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 4 }}>
+            <X size={18} />
+          </button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label className="label">Tipo de chave PIX</label>
+            <select className="input" value={form.tipo_chave || "aleatoria"} onChange={f("tipo_chave")}>
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="telefone">Telefone</option>
+              <option value="email">E-mail</option>
+              <option value="aleatoria">Chave aleatória (EVP)</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Chave PIX</label>
+            <input className="input" type="text" value={form.chave_pix || ""} onChange={f("chave_pix")} placeholder="Sem pontos, traços ou espaços" />
+          </div>
+          <div>
+            <label className="label">Nome da loja no PIX (até 25 caracteres)</label>
+            <input className="input" type="text" value={form.nome_loja || ""} onChange={f("nome_loja")} placeholder="Ex: Elta Variedades" />
+          </div>
+          <div>
+            <label className="label">Cidade</label>
+            <input className="input" type="text" value={form.cidade_loja || ""} onChange={f("cidade_loja")} placeholder="Ex: Fortaleza" />
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button className="btn-primary" style={{ flex: 1, height: 42, justifyContent: "center" }} disabled={salvando} onClick={salvar}>
+              {salvando ? "Salvando…" : "Salvar"}
+            </button>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // bip de confirmação
 function bip(ok = true) {
@@ -40,6 +102,10 @@ export default function NovaNota() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [showPix, setShowPix] = useState(false);
+  const [tipoPix, setTipoPix] = useState("automatico"); // "automatico" (AbacatePay) | "manual" (chave fixa)
+  const [showPixEstatico, setShowPixEstatico] = useState(false);
+  const [showConfigPix, setShowConfigPix] = useState(false);
+  const [pixCfg, setPixCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza" });
   const [scanner, setScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const videoRef = useRef(null);
@@ -139,7 +205,16 @@ export default function NovaNota() {
   useEffect(() => {
     supabase.from("produtos").select("*").order("nome").then(({ data }) => setProdutos(data || []));
     supabase.from("clientes").select("*").order("nome").then(({ data }) => setClientes(data || []));
+    supabase.from("config_pix_venda").select("*").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data) setPixCfg(data);
+    });
   }, []);
+
+  async function salvarPixCfg(novo) {
+    await supabase.from("config_pix_venda").upsert({ id: 1, ...novo });
+    setPixCfg(novo);
+    setShowConfigPix(false);
+  }
 
   const filtrados = useMemo(
     () =>
@@ -247,7 +322,8 @@ export default function NovaNota() {
     // é confirmado (ver onConfirmado do PagamentoPixModal mais abaixo) — assim
     // o Fechamento de Caixa só recebe vendas realmente pagas.
     if (pagamento === "Pix") {
-      setShowPix(true);
+      if (tipoPix === "manual") setShowPixEstatico(true);
+      else setShowPix(true);
       return;
     }
 
@@ -266,7 +342,7 @@ export default function NovaNota() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Nova nota</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900">Nova venda</h1>
         <p className="text-slate-500">
           Selecione as roupas, bipe com o leitor de código de barras, ou use a câmera
         </p>
@@ -401,6 +477,29 @@ export default function NovaNota() {
                 <input className="input" type="number" min="0" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} placeholder="0,00" />
               </div>
             </div>
+            {pagamento === "Pix" && (
+              <div className="bg-violet-50 rounded-xl p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <input type="radio" checked={tipoPix === "automatico"} onChange={() => setTipoPix("automatico")} />
+                    QR automático (confirma só)
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <input type="radio" checked={tipoPix === "manual"} onChange={() => setTipoPix("manual")} />
+                    QR fixo (confirma manual)
+                  </label>
+                </div>
+                {tipoPix === "manual" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConfigPix(true)}
+                    className="text-xs text-violet-600 font-medium flex items-center gap-1 hover:underline"
+                  >
+                    <Settings className="w-3 h-3" /> Configurar chave Pix da loja
+                  </button>
+                )}
+              </div>
+            )}
             {pagamento === "Crediário" && (
               <div className="grid grid-cols-2 gap-3 bg-violet-50 rounded-xl p-3">
                 <div>
@@ -509,6 +608,26 @@ export default function NovaNota() {
           }}
           onClose={() => setShowPix(false)}
         />
+      )}
+
+      {/* Tela de pagamento Pix manual — QR fixo + confirmação manual */}
+      {showPixEstatico && (
+        <PagamentoPixEstaticoModal
+          valor={total}
+          txid={`N${Date.now()}`}
+          cfg={pixCfg}
+          onConfirmar={async () => {
+            await criarNotaNoSupabase({ formaPagamentoFinal: "Pix" });
+            setShowPixEstatico(false);
+          }}
+          onClose={() => setShowPixEstatico(false)}
+          onConfigurar={() => { setShowPixEstatico(false); setShowConfigPix(true); }}
+        />
+      )}
+
+      {/* Configuração da chave Pix fixa da loja */}
+      {showConfigPix && (
+        <ConfigPixModal cfg={pixCfg} onSave={salvarPixCfg} onClose={() => setShowConfigPix(false)} />
       )}
     </div>
   );
