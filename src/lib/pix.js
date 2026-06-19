@@ -61,5 +61,5 @@ export function gerarPixPayload({ chave, nome, cidade, valor, txid }) {
 }
 
 export function qrUrl(text) {
-  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=300x300&margin=10&ecc=H&format=png`;
+  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=500x500&margin=10&ecc=H&format=png`;
 }

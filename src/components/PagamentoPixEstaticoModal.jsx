@@ -87,8 +87,8 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
       <div
         style={{
           background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 20,
-          padding: 28, width: "100%", maxWidth: 420, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
-          maxHeight: "92vh", overflowY: "auto", textAlign: "center",
+          padding: 28, width: "100%", maxWidth: 560, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+          maxHeight: "94vh", overflowY: "auto", textAlign: "center",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -117,9 +117,15 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
           </div>
         ) : (
           <>
-            <div style={{ background: "#fff", borderRadius: 14, padding: 14, display: "inline-block", marginBottom: 10 }}>
+            <div style={{ background: "#fff", borderRadius: 18, padding: 24, maxWidth: "100%", width: 408, margin: "0 auto 10px", boxSizing: "border-box" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrSrc} alt="QR Code Pix" width={220} height={220} style={{ display: "block" }} />
+              <img
+                src={qrSrc}
+                alt="QR Code Pix"
+                width={360}
+                height={360}
+                style={{ display: "block", width: "100%", maxWidth: 360, height: "auto", margin: "0 auto" }}
+              />
             </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
