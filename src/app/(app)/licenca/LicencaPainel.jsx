@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { gerarPixPayload, formatarChavePix, qrUrl } from "@/lib/pix";
-import { ShieldCheck, ShieldAlert, Settings, LogOut, Copy, Check, Lock } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Settings, LogOut, Lock, QrCode } from "lucide-react";
+import PagamentoLicencaPixModal from "@/components/PagamentoLicencaPixModal";
 
 // Hash SHA-256 do PIN do dono — mesmo PIN usado em Configurações para proteger
 // ações sensíveis. Aqui protege a troca da chave Pix/mensalidade da licença,
@@ -38,13 +38,10 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const [pagamentos, setPagamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [mostrarConfig, setMostrarConfig] = useState(false);
-  const [mostrarPagamento, setMostrarPagamento] = useState(false);
   const [salvandoCfg, setSalvandoCfg] = useState(false);
-  const [salvandoPag, setSalvandoPag] = useState(false);
-  const [copiado, setCopiado] = useState(false);
+  const [mostrarPagamentoPix, setMostrarPagamentoPix] = useState(false);
 
   const [formCfg, setFormCfg] = useState(null);
-  const [formPag, setFormPag] = useState({ data: hojeISO(), valor: "", observacao: "" });
   const [erroTabela, setErroTabela] = useState(false);
 
   // ─── PIN do dono para proteger a configuração da chave Pix/mensalidade ───
@@ -106,7 +103,6 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
       setCfg(cFinal);
       setFormCfg(cFinal);
       setPagamentos(pg || []);
-      setFormPag((p) => ({ ...p, valor: cFinal.valor_mensalidade ? String(cFinal.valor_mensalidade).replace(".", ",") : p.valor }));
     } catch (_) {
       setErroTabela(true);
       setCfg(cfgPadrao);
@@ -149,33 +145,9 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const diasRestantes = venceEm ? diffDias(venceEm, hoje) : null;
   const vencido = diasRestantes === null || diasRestantes < 0;
 
-  const chaveFormatada = cfg.chave_pix ? formatarChavePix(cfg.chave_pix, cfg.tipo_chave || "aleatoria") : "";
-  const pixPayload = chaveFormatada
-    ? gerarPixPayload({
-        chave: chaveFormatada,
-        nome: cfg.nome_beneficiario || "Elta Variedades",
-        cidade: cfg.cidade || "Fortaleza",
-        valor: cfg.valor_mensalidade,
-        txid: "LICENCA",
-      })
-    : null;
-
-  function copiarCodigo() {
-    if (!pixPayload) return;
-    try {
-      navigator.clipboard.writeText(pixPayload);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    } catch (_) {}
-  }
-
   async function salvarCfg() {
     setSalvandoCfg(true);
     await supabase.from("licenca_config").update({
-      chave_pix: formCfg.chave_pix,
-      tipo_chave: formCfg.tipo_chave,
-      nome_beneficiario: formCfg.nome_beneficiario,
-      cidade: formCfg.cidade,
       valor_mensalidade: parseFloat(String(formCfg.valor_mensalidade).replace(",", ".")) || 0,
       dias_validade: parseInt(formCfg.dias_validade) || 30,
     }).eq("id", 1);
@@ -184,18 +156,18 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
     carregar();
   }
 
-  async function registrarPagamento() {
-    const valorNum = parseFloat(String(formPag.valor).replace(",", ".")) || 0;
-    if (valorNum <= 0) return;
-    setSalvandoPag(true);
-    await supabase.from("pagamentos_licenca").insert({
-      data: formPag.data,
-      valor: valorNum,
-      observacao: formPag.observacao || null,
+  // Chamado pelo PagamentoLicencaPixModal quando a AbacatePay confirma o
+  // pagamento. Esta é a ÚNICA forma de liberar o sistema — não existe botão
+  // de "já paguei" pra destravar sem o Pix realmente cair na conta.
+  async function confirmarPagamentoAutomatico(pix) {
+    const { error } = await supabase.from("pagamentos_licenca").insert({
+      data: hojeISO(),
+      valor: cfg.valor_mensalidade || 0,
+      observacao: `Pago via Pix automático (AbacatePay${pix?.id ? ` — ${pix.id}` : ""})`,
     });
-    setSalvandoPag(false);
-    setMostrarPagamento(false);
-    carregar();
+    if (error) throw new Error("Pagamento confirmado, mas houve um erro ao registrar — avise o suporte.");
+    await carregar();
+    setMostrarPagamentoPix(false);
   }
 
   const f = (setForm) => (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
@@ -227,29 +199,22 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
     </div>
   );
 
-  const qrCard = pixPayload ? (
+  const pagamentoCard = cfg.valor_mensalidade > 0 ? (
     <div className="card" style={{ padding: 24, textAlign: "center" }}>
-      <p style={{ fontSize: 11, color: "var(--tx-3)", fontWeight: 700, textTransform: "uppercase", margin: "0 0 12px 0" }}>
-        Pague a mensalidade via Pix
+      <p style={{ fontSize: 11, color: "var(--tx-3)", fontWeight: 700, textTransform: "uppercase", margin: "0 0 10px 0" }}>
+        Mensalidade
       </p>
-      {cfg.valor_mensalidade > 0 && (
-        <p style={{ fontSize: 26, fontWeight: 900, color: "var(--tx)", margin: "0 0 12px 0" }}>{fmtBRL(cfg.valor_mensalidade)}</p>
-      )}
-      <img src={qrUrl(pixPayload)} alt="QR Pix" width={200} height={200}
-        style={{ borderRadius: 10, border: "1px solid var(--line-2)", margin: "0 auto", display: "block" }} />
-      <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 14, background: "var(--bg)", border: "1px solid var(--line-2)", borderRadius: 8, padding: "8px 10px" }}>
-        <p style={{ fontSize: 9.5, color: "var(--tx-3)", margin: 0, wordBreak: "break-all", flex: 1, fontFamily: "monospace", textAlign: "left" }}>
-          {pixPayload}
-        </p>
-        <button type="button" onClick={copiarCodigo}
-          style={{ background: copiado ? "#34d399" : "#7c3aed", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>
-          {copiado ? <Check size={13} /> : <Copy size={13} />} {copiado ? "Copiado!" : "Copiar"}
-        </button>
-      </div>
+      <p style={{ fontSize: 28, fontWeight: 900, color: "var(--tx)", margin: "0 0 16px 0" }}>{fmtBRL(cfg.valor_mensalidade)}</p>
+      <button className="btn-primary" style={{ height: 46, width: "100%", justifyContent: "center" }} onClick={() => setMostrarPagamentoPix(true)}>
+        <QrCode size={16} /> Pagar com Pix agora
+      </button>
+      <p style={{ fontSize: 11.5, color: "var(--tx-4)", marginTop: 12, lineHeight: 1.5 }}>
+        O sistema libera automaticamente assim que o pagamento for confirmado — não existe outra forma de liberar sem o Pix ser de fato realizado.
+      </p>
     </div>
   ) : (
     <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--tx-3)" }}>
-      ⚠️ Chave Pix da licença ainda não configurada. Abra "Configurar" abaixo para cadastrar.
+      ⚠️ Valor da mensalidade ainda não configurado. Abra "Configurar" abaixo para cadastrar.
     </div>
   );
 
@@ -258,7 +223,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
       <button onClick={() => setMostrarConfig((v) => !v)} className="w-full"
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "none", border: "none", cursor: "pointer", color: "var(--tx)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 14 }}>
-          <Settings size={16} /> Configurar chave Pix e mensalidade
+          <Settings size={16} /> Configurar mensalidade
         </span>
         <span style={{ fontSize: 12, color: "var(--tx-3)" }}>{mostrarConfig ? "▲" : "▼"}</span>
       </button>
@@ -272,8 +237,8 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
           </div>
           <p style={{ fontSize: 12.5, color: "var(--tx-3)", margin: 0, lineHeight: 1.5 }}>
             {cfgAdmin && !cfgAdmin.pin_hash
-              ? "Esse PIN protege a chave Pix e a mensalidade da licença — cadastre um PIN que só você conhece, pra funcionárias não conseguirem mudar pra onde vai esse pagamento."
-              : "Digite o PIN do dono para alterar a chave Pix ou o valor da mensalidade."}
+              ? "Esse PIN protege o valor da mensalidade da licença — cadastre um PIN que só você conhece, pra funcionárias não conseguirem alterá-lo."
+              : "Digite o PIN do dono para alterar o valor da mensalidade ou a validade."}
           </p>
           <form onSubmit={enviarPin} style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 260 }}>
             <div>
@@ -295,30 +260,6 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
       )}
       {mostrarConfig && formCfg && pinLiberado && (
         <div style={{ padding: "0 18px 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <label className="label">Tipo de chave Pix</label>
-            <select className="input" value={formCfg.tipo_chave || "aleatoria"} onChange={f(setFormCfg)("tipo_chave")}>
-              <option value="cpf">CPF</option>
-              <option value="cnpj">CNPJ</option>
-              <option value="telefone">Telefone</option>
-              <option value="email">E-mail</option>
-              <option value="aleatoria">Chave aleatória (EVP)</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Chave Pix (sua, para receber a mensalidade)</label>
-            <input className="input" type="text" value={formCfg.chave_pix || ""} onChange={f(setFormCfg)("chave_pix")} placeholder="Sem pontos, traços ou espaços" />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label className="label">Nome do beneficiário</label>
-              <input className="input" type="text" value={formCfg.nome_beneficiario || ""} onChange={f(setFormCfg)("nome_beneficiario")} />
-            </div>
-            <div>
-              <label className="label">Cidade</label>
-              <input className="input" type="text" value={formCfg.cidade || ""} onChange={f(setFormCfg)("cidade")} />
-            </div>
-          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label className="label">Valor da mensalidade (R$)</label>
@@ -331,39 +272,6 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
           </div>
           <button className="btn-primary" style={{ height: 42 }} disabled={salvandoCfg} onClick={salvarCfg}>
             {salvandoCfg ? "Salvando…" : "Salvar configuração"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  const pagamentoSection = (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      <button onClick={() => setMostrarPagamento((v) => !v)} className="w-full"
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "none", border: "none", cursor: "pointer", color: "var(--tx)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 14 }}>
-          ✅ Já recebi o Pix — registrar pagamento e liberar
-        </span>
-        <span style={{ fontSize: 12, color: "var(--tx-3)" }}>{mostrarPagamento ? "▲" : "▼"}</span>
-      </button>
-      {mostrarPagamento && (
-        <div style={{ padding: "0 18px 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label className="label">Data do pagamento</label>
-              <input className="input" type="date" value={formPag.data} onChange={f(setFormPag)("data")} />
-            </div>
-            <div>
-              <label className="label">Valor recebido (R$)</label>
-              <input className="input" type="text" inputMode="decimal" value={formPag.valor} onChange={f(setFormPag)("valor")} placeholder="0,00" />
-            </div>
-          </div>
-          <div>
-            <label className="label">Observação (opcional)</label>
-            <input className="input" type="text" value={formPag.observacao} onChange={f(setFormPag)("observacao")} placeholder="Ex: pago por Maria via Pix" />
-          </div>
-          <button className="btn-primary" style={{ height: 42 }} disabled={salvandoPag} onClick={registrarPagamento}>
-            {salvandoPag ? "Salvando…" : "Confirmar pagamento e liberar sistema"}
           </button>
         </div>
       )}
@@ -387,10 +295,16 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const conteudo = (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", maxWidth: 480, margin: "0 auto" }}>
       {statusCard}
-      {qrCard}
+      {pagamentoCard}
       {adminSection}
-      {pagamentoSection}
       {historico}
+      {mostrarPagamentoPix && (
+        <PagamentoLicencaPixModal
+          valor={cfg.valor_mensalidade}
+          onConfirmado={confirmarPagamentoAutomatico}
+          onClose={() => setMostrarPagamentoPix(false)}
+        />
+      )}
     </div>
   );
 
