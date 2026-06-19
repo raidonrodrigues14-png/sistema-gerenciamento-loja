@@ -11,7 +11,7 @@ import {
 // automaticamente. Quando o pagamento é confirmado, chama onConfirmado(pix) —
 // quem usa este componente é responsável por criar a nota/registro nesse momento,
 // o que já faz o valor aparecer automaticamente no Fechamento de Caixa.
-export default function PagamentoPixModal({ valor, descricao, cliente, onConfirmado, onClose }) {
+export default function PagamentoPixModal({ valor, taxa = 0, descricao, cliente, onConfirmado, onClose }) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [pix, setPix] = useState(null); // { id, brCode, brCodeBase64, devMode, status, expiresAt }
@@ -171,9 +171,14 @@ export default function PagamentoPixModal({ valor, descricao, cliente, onConfirm
           )}
         </div>
 
-        <p style={{ fontSize: 30, fontWeight: 800, color: "var(--gold)", margin: "6px 0 18px" }}>
+        <p style={{ fontSize: 30, fontWeight: 800, color: "var(--gold)", margin: taxa > 0 ? "6px 0 4px" : "6px 0 18px" }}>
           {fmtBRL(valor)}
         </p>
+        {taxa > 0 && (
+          <p style={{ fontSize: 11, color: "var(--tx-4)", margin: "0 0 14px" }}>
+            Inclui taxa de {fmtBRL(taxa)} do Pix dinâmico
+          </p>
+        )}
 
         {carregando && (
           <div style={{ padding: "40px 0", color: "var(--tx-3)" }}>

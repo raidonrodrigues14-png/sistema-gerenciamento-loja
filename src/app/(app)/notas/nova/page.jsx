@@ -90,7 +90,7 @@ function ConfigPixModal({ cfg, onSave, onClose }) {
     }
     setSalvando(true);
     try {
-      const payload = { ...form };
+      const payload = { ...form, taxa_pix_dinamico: Number(form.taxa_pix_dinamico || 0) };
       if (precisaCriarPin || trocarPin) payload.pin_hash = await hashPin(novoPin);
       await onSave(payload);
     } catch (e) {
@@ -137,6 +137,16 @@ function ConfigPixModal({ cfg, onSave, onClose }) {
           <div>
             <label className="label">Cidade</label>
             <input className="input" type="text" value={form.cidade_loja || ""} onChange={f("cidade_loja")} placeholder="Ex: Fortaleza" />
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            <p style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)", marginBottom: 6 }}>Pix dinâmico (AbacatePay)</p>
+            <p style={{ fontSize: 11.5, color: "var(--tx-3)", marginBottom: 8, lineHeight: 1.5 }}>
+              Quando você gerar o QR dinâmico (confirma sozinho), essa taxa é somada ao total e cobrada
+              do cliente — serve pra cobrir a taxa que a AbacatePay cobra por Pix (hoje, R$ 0,80).
+            </p>
+            <label className="label">Taxa cobrada do cliente no QR dinâmico (R$)</label>
+            <input className="input" type="number" min="0" step="0.01" value={form.taxa_pix_dinamico ?? 0.9} onChange={f("taxa_pix_dinamico")} />
           </div>
 
           <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
@@ -236,12 +246,12 @@ export default function NovaNota() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [showPix, setShowPix] = useState(false);
-  const [tipoPix] = useState("manual"); // opção "automatico" (AbacatePay) removida da tela; só QR fixo
+  const [tipoPix, setTipoPix] = useState("manual"); // "manual" = QR fixo sem taxa; "automatico" = QR dinâmico AbacatePay, confirma só, soma a taxa configurada
   const [showPixEstatico, setShowPixEstatico] = useState(false);
   const [showCartao, setShowCartao] = useState(false);
   const [showConfigPix, setShowConfigPix] = useState(false);
   const [showPinCheck, setShowPinCheck] = useState(false);
-  const [pixCfg, setPixCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza" });
+  const [pixCfg, setPixCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza", taxa_pix_dinamico: 0.9 });
   const [scanner, setScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const videoRef = useRef(null);
@@ -400,6 +410,7 @@ export default function NovaNota() {
 
   const subtotal = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0);
   const total = Math.max(0, subtotal - Number(desconto || 0));
+  const taxaPixDinamico = Number(pixCfg?.taxa_pix_dinamico ?? 0.9);
 
   // Cria de fato a nota no Supabase (itens, baixa de estoque, parcelas do
   // crediário) e navega para o recibo. Usada tanto pelo fluxo normal quanto
@@ -631,6 +642,21 @@ export default function NovaNota() {
             </div>
             {pagamento === "Pix" && (
               <div className="bg-violet-50 rounded-xl p-3 space-y-2">
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                    <input type="radio" name="tipoPix" checked={tipoPix === "manual"} onChange={() => setTipoPix("manual")} />
+                    QR fixo (sem taxa, confirma na mão)
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                    <input type="radio" name="tipoPix" checked={tipoPix === "automatico"} onChange={() => setTipoPix("automatico")} />
+                    QR dinâmico (confirma sozinho)
+                  </label>
+                </div>
+                {tipoPix === "automatico" && (
+                  <p className="text-xs text-violet-700">
+                    Taxa de {fmtBRL(taxaPixDinamico)} somada ao total — o cliente paga {fmtBRL(total + taxaPixDinamico)} no QR.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={abrirConfigPix}
@@ -746,11 +772,13 @@ export default function NovaNota() {
       {/* Tela de pagamento Pix — QR code + confirmação automática */}
       {showPix && (
         <PagamentoPixModal
-          valor={total}
+          valor={total + taxaPixDinamico}
+          taxa={taxaPixDinamico}
           descricao={`Venda${clienteSelecionado ? " - " + clienteSelecionado.nome : ""}`}
           cliente={clienteSelecionado}
           onConfirmado={async () => {
-            await criarNotaNoSupabase({ formaPagamentoFinal: "Pix" });
+            const notaTaxa = `Pix dinâmico: taxa de ${fmtBRL(taxaPixDinamico)} cobrada do cliente (total no QR: ${fmtBRL(total + taxaPixDinamico)})`;
+            await criarNotaNoSupabase({ formaPagamentoFinal: "Pix", observacaoFinal: obs ? `${obs} — ${notaTaxa}` : notaTaxa });
           }}
           onClose={() => setShowPix(false)}
         />
