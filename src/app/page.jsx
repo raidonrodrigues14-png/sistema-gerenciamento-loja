@@ -2,15 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      router.replace(session ? "/dashboard" : "/login");
-    });
+    router.replace(localStorage.getItem("elta_logado") === "1" ? "/dashboard" : "/login");
   }, [router]);
 
   return (

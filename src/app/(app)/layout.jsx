@@ -50,14 +50,8 @@ export default function AppLayout({ children }) {
   const [checandoLicenca, setChecandoLicenca] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace("/login");
-      else setPronto(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) router.replace("/login");
-    });
-    return () => sub.subscription.unsubscribe();
+    if (localStorage.getItem("elta_logado") === "1") setPronto(true);
+    else router.replace("/login");
   }, [router]);
 
   async function checarLicenca() {
@@ -97,7 +91,7 @@ export default function AppLayout({ children }) {
   }, [pronto]);
 
   async function sair() {
-    await supabase.auth.signOut();
+    localStorage.removeItem("elta_logado");
     router.replace("/login");
   }
 
