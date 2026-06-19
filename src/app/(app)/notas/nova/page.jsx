@@ -235,7 +235,7 @@ export default function NovaNota() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [showPix, setShowPix] = useState(false);
-  const [tipoPix, setTipoPix] = useState("automatico"); // "automatico" (AbacatePay) | "manual" (chave fixa)
+  const [tipoPix] = useState("manual"); // opção "automatico" (AbacatePay) removida da tela; só QR fixo
   const [showPixEstatico, setShowPixEstatico] = useState(false);
   const [showConfigPix, setShowConfigPix] = useState(false);
   const [showPinCheck, setShowPinCheck] = useState(false);
@@ -621,25 +621,13 @@ export default function NovaNota() {
             </div>
             {pagamento === "Pix" && (
               <div className="bg-violet-50 rounded-xl p-3 space-y-2">
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                    <input type="radio" checked={tipoPix === "automatico"} onChange={() => setTipoPix("automatico")} />
-                    QR automático (confirma só)
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                    <input type="radio" checked={tipoPix === "manual"} onChange={() => setTipoPix("manual")} />
-                    QR fixo (confirma manual)
-                  </label>
-                </div>
-                {tipoPix === "manual" && (
-                  <button
-                    type="button"
-                    onClick={abrirConfigPix}
-                    className="text-xs text-violet-600 font-medium flex items-center gap-1 hover:underline"
-                  >
-                    <Settings className="w-3 h-3" /> Configurar chave Pix da loja
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={abrirConfigPix}
+                  className="text-xs text-violet-600 font-medium flex items-center gap-1 hover:underline"
+                >
+                  <Settings className="w-3 h-3" /> Configurar chave Pix da loja
+                </button>
               </div>
             )}
             {pagamento === "Crediário" && (

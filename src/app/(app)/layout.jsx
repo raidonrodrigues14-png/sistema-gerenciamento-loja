@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import LicencaPainel from "./licenca/LicencaPainel";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
-  Briefcase, CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
+  CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
   ShoppingCart,
 } from "lucide-react";
 
@@ -18,7 +18,6 @@ const menu = [
   { href: "/importar", label: "Importar XML", icon: FileUp },
   { href: "/notas/nova", label: "Vendas", icon: ShoppingCart },
   { href: "/notas", label: "Notas", icon: Receipt },
-  { href: "/malinhas", label: "Malinhas", icon: Briefcase },
   { href: "/crediario", label: "Crediário", icon: CreditCard },
   { href: "/carne", label: "Carnê", icon: BookOpen },
   { href: "/caixa", label: "Caixa do dia", icon: Calculator },
