@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Search, FileUp, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, FileUp, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 const POR_PAGINA = 20;
 
@@ -44,7 +44,7 @@ export default function Produtos() {
             <FileUp className="w-4 h-4" /> Importar XML
           </Link>
           <Link href="/produtos/adicionar" className="btn-primary">
-            <Lock className="w-4 h-4" /> Adicionar produtos
+            <Plus className="w-4 h-4" /> Adicionar produtos
           </Link>
         </div>
       </div>

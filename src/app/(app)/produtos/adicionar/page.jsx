@@ -2,110 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Plus, Search, Pencil, Trash2, X, LayoutGrid, Lock } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, LayoutGrid } from "lucide-react";
 
 const vazio = {
   codigo: "", nome: "", categoria: "Geral", tamanho: "", cor: "",
   preco_custo: "", preco_venda: "", estoque: 0, fornecedor: "",
 };
 
-// Hash SHA-256 do PIN do dono — mesmo PIN usado em Configurações e na Licença,
-// pra proteger ações que só a dona da loja deve poder fazer.
-async function hashPin(pin) {
-  const enc = new TextEncoder().encode(String(pin || "").trim());
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-// ─── Gate: criar/verificar o PIN do dono antes de liberar a tela ───────────
-function PortaoPin({ cfg, onLiberado }) {
-  const precisaCriar = !cfg?.pin_hash;
-  const [pin, setPin] = useState("");
-  const [confirmaPin, setConfirmaPin] = useState("");
-  const [erro, setErro] = useState("");
-  const [verificando, setVerificando] = useState(false);
-
-  async function enviar(e) {
-    e.preventDefault();
-    setErro("");
-    if (precisaCriar) {
-      if (pin.trim().length < 4) return setErro("O PIN precisa ter pelo menos 4 dígitos.");
-      if (pin !== confirmaPin) return setErro("Os PINs digitados não coincidem.");
-      setVerificando(true);
-      const pin_hash = await hashPin(pin);
-      const { data, error } = await supabase
-        .from("config_admin")
-        .update({ pin_hash })
-        .eq("id", 1)
-        .select()
-        .single();
-      setVerificando(false);
-      if (error) {
-        return setErro(
-          "Erro ao salvar o PIN — verifique se a migração supabase/config_admin.sql foi executada no Supabase."
-        );
-      }
-      onLiberado(data);
-    } else {
-      setVerificando(true);
-      const hash = await hashPin(pin);
-      setVerificando(false);
-      if (hash === cfg.pin_hash) onLiberado(cfg);
-      else setErro("PIN incorreto.");
-    }
-  }
-
-  return (
-    <div className="card p-6 space-y-4 max-w-md">
-      <div className="flex items-center gap-2 text-violet-600">
-        <Lock className="w-5 h-5" />
-        <p className="font-bold text-base">{precisaCriar ? "Criar PIN do dono" : "Área restrita à dona da loja"}</p>
-      </div>
-      <p className="text-sm text-slate-500 leading-relaxed">
-        {precisaCriar
-          ? "Esse PIN protege o cadastro, a edição e a exclusão de produtos. Cadastre um PIN que só você conhece; funcionárias não devem ter acesso a ele."
-          : "Para adicionar, editar ou excluir produtos, digite o PIN cadastrado pela dona da loja."}
-      </p>
-      <form onSubmit={enviar} className="space-y-3 max-w-xs">
-        <div>
-          <label className="label">{precisaCriar ? "Criar PIN (mín. 4 dígitos)" : "PIN"}</label>
-          <input
-            className="input"
-            type="password"
-            inputMode="numeric"
-            autoFocus
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="••••"
-          />
-        </div>
-        {precisaCriar && (
-          <div>
-            <label className="label">Confirmar PIN</label>
-            <input
-              className="input"
-              type="password"
-              inputMode="numeric"
-              value={confirmaPin}
-              onChange={(e) => setConfirmaPin(e.target.value)}
-              placeholder="••••"
-            />
-          </div>
-        )}
-        {erro && <p className="text-sm text-red-500">{erro}</p>}
-        <button className="btn-primary" disabled={verificando || !pin}>
-          {verificando ? "Verificando…" : precisaCriar ? "Criar PIN" : "Entrar"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
 export default function AdicionarProdutos() {
-  const [carregandoCfg, setCarregandoCfg] = useState(true);
-  const [cfg, setCfg] = useState(null);
-  const [liberado, setLiberado] = useState(false);
-
   const [produtos, setProdutos] = useState([]);
   const [busca, setBusca] = useState("");
   const [modal, setModal] = useState(false);
@@ -118,24 +22,11 @@ export default function AdicionarProdutos() {
     preco_custo: "", preco_venda: "", tamanhos: "P, M, G", cores: "", estoque: 1,
   });
 
-  useEffect(() => {
-    async function carregarCfg() {
-      let { data } = await supabase.from("config_admin").select("*").eq("id", 1).maybeSingle();
-      if (!data) {
-        const ins = await supabase.from("config_admin").insert({ id: 1 }).select().single();
-        data = ins.data;
-      }
-      setCfg(data);
-      setCarregandoCfg(false);
-    }
-    carregarCfg();
-  }, []);
-
   async function carregar() {
     const { data } = await supabase.from("produtos").select("*").order("nome");
     setProdutos(data || []);
   }
-  useEffect(() => { if (liberado) carregar(); }, [liberado]);
+  useEffect(() => { carregar(); }, []);
 
   function abrirNovo() {
     setForm(vazio);
@@ -210,106 +101,94 @@ export default function AdicionarProdutos() {
       .filter(Boolean).join(" ").toLowerCase().includes(busca.toLowerCase())
   );
 
-  if (carregandoCfg) {
-    return <div className="text-slate-400">Carregando…</div>;
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900">Adicionar produtos</h1>
-        <p className="text-slate-500">Área restrita à dona da loja</p>
+        <p className="text-slate-500">{produtos.length} roupas cadastradas</p>
       </div>
 
-      {!liberado && <PortaoPin cfg={cfg} onLiberado={(c) => { setCfg(c); setLiberado(true); }} />}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            className="input pl-10"
+            placeholder="Buscar por nome, código, categoria, tamanho, cor…"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setModalGrade(true)} className="btn-ghost">
+            <LayoutGrid className="w-4 h-4" /> Nova grade
+          </button>
+          <button onClick={abrirNovo} className="btn-primary">
+            <Plus className="w-4 h-4" /> Novo produto
+          </button>
+        </div>
+      </div>
 
-      {liberado && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-slate-500">{produtos.length} roupas cadastradas</p>
-            <div className="flex gap-2">
-              <button onClick={() => setModalGrade(true)} className="btn-ghost">
-                <LayoutGrid className="w-4 h-4" /> Nova grade
-              </button>
-              <button onClick={abrirNovo} className="btn-primary">
-                <Plus className="w-4 h-4" /> Novo produto
-              </button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input pl-10"
-              placeholder="Buscar por nome, código, categoria, tamanho, cor…"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-
-          <div className="card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-200">
-                  <th className="px-5 py-3.5">Produto</th>
-                  <th className="px-5 py-3.5">Código</th>
-                  <th className="px-5 py-3.5">Tam / Cor</th>
-                  <th className="px-5 py-3.5">Custo</th>
-                  <th className="px-5 py-3.5">Venda</th>
-                  <th className="px-5 py-3.5">Estoque</th>
-                  <th className="px-5 py-3.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtrados.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3.5">
-                      <p className="font-semibold text-slate-900">{p.nome}</p>
-                      <p className="text-xs text-slate-400">{p.categoria}{p.fornecedor ? ` · ${p.fornecedor}` : ""}</p>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500">{p.codigo || "—"}</td>
-                    <td className="px-5 py-3.5 text-slate-500">
-                      {[p.tamanho, p.cor].filter(Boolean).join(" / ") || "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500">{fmtBRL(p.preco_custo)}</td>
-                    <td className="px-5 py-3.5 font-semibold text-slate-900">{fmtBRL(p.preco_venda)}</td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                          p.estoque <= 0
-                            ? "bg-red-100 text-red-600"
-                            : p.estoque <= 3
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        }`}
-                      >
-                        {p.estoque} un
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex gap-1 justify-end">
-                        <button onClick={() => abrirEdicao(p)} className="p-2 rounded-lg hover:bg-violet-100 text-slate-400 hover:text-violet-600">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => excluir(p)} className="p-2 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtrados.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
-                      Nenhum produto encontrado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-200">
+              <th className="px-5 py-3.5">Produto</th>
+              <th className="px-5 py-3.5">Código</th>
+              <th className="px-5 py-3.5">Tam / Cor</th>
+              <th className="px-5 py-3.5">Custo</th>
+              <th className="px-5 py-3.5">Venda</th>
+              <th className="px-5 py-3.5">Estoque</th>
+              <th className="px-5 py-3.5"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filtrados.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50">
+                <td className="px-5 py-3.5">
+                  <p className="font-semibold text-slate-900">{p.nome}</p>
+                  <p className="text-xs text-slate-400">{p.categoria}{p.fornecedor ? ` · ${p.fornecedor}` : ""}</p>
+                </td>
+                <td className="px-5 py-3.5 text-slate-500">{p.codigo || "—"}</td>
+                <td className="px-5 py-3.5 text-slate-500">
+                  {[p.tamanho, p.cor].filter(Boolean).join(" / ") || "—"}
+                </td>
+                <td className="px-5 py-3.5 text-slate-500">{fmtBRL(p.preco_custo)}</td>
+                <td className="px-5 py-3.5 font-semibold text-slate-900">{fmtBRL(p.preco_venda)}</td>
+                <td className="px-5 py-3.5">
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                      p.estoque <= 0
+                        ? "bg-red-100 text-red-600"
+                        : p.estoque <= 3
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {p.estoque} un
+                  </span>
+                </td>
+                <td className="px-5 py-3.5">
+                  <div className="flex gap-1 justify-end">
+                    <button onClick={() => abrirEdicao(p)} className="p-2 rounded-lg hover:bg-violet-100 text-slate-400 hover:text-violet-600">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => excluir(p)} className="p-2 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtrados.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
+                  Nenhum produto encontrado.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {modalGrade && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setModalGrade(false)}>
