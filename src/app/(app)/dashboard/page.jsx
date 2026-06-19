@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase, fmtBRL, fmtData } from "@/lib/supabase";
-import { Shirt, Package, Receipt, Users, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
+import {
+  Shirt, Package, Receipt, Users, AlertTriangle, TrendingUp, BarChart3,
+  Trophy, Percent, ArrowUpRight, ArrowDownRight, Minus,
+} from "lucide-react";
 
 const PERIODOS = [
   { id: "hoje", label: "Hoje" },
@@ -247,12 +250,18 @@ export default function Dashboard() {
   const [customFim, setCustomFim] = useState(hojeISO());
   const [vendasPeriodo, setVendasPeriodo] = useState([]); // notas brutas no intervalo
   const [carregandoGrafico, setCarregandoGrafico] = useState(true);
+  const [itensPeriodo, setItensPeriodo] = useState([]); // itens das notas do período (p/ ranking e margem)
+  const [carregandoItens, setCarregandoItens] = useState(true);
+  const [comparativoMensal, setComparativoMensal] = useState({
+    atual: { total: 0, qtd: 0 },
+    anterior: { total: 0, qtd: 0 },
+  });
 
   useEffect(() => {
     async function carregarGrafico() {
       setCarregandoGrafico(true);
       const { inicio, fim } = calcularIntervalo(periodo, customIni, customFim);
-      let q = supabase.from("notas").select("total, criado_em").lte("criado_em", fim.toISOString());
+      let q = supabase.from("notas").select("id, total, criado_em").lte("criado_em", fim.toISOString());
       if (inicio) q = q.gte("criado_em", inicio.toISOString());
       const { data } = await q.order("criado_em", { ascending: true });
       setVendasPeriodo(data || []);
@@ -260,6 +269,27 @@ export default function Dashboard() {
     }
     carregarGrafico();
   }, [periodo, customIni, customFim]);
+
+  // Itens vendidos no período (junto com o produto, pra saber o custo) — usado
+  // no ranking de mais vendidos e no cálculo de margem de lucro abaixo.
+  useEffect(() => {
+    async function carregarItens() {
+      setCarregandoItens(true);
+      const ids = vendasPeriodo.map((n) => n.id).filter(Boolean);
+      if (!ids.length) {
+        setItensPeriodo([]);
+        setCarregandoItens(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("nota_itens")
+        .select("produto_id, descricao, quantidade, total, produtos(nome, preco_custo)")
+        .in("nota_id", ids);
+      setItensPeriodo(data || []);
+      setCarregandoItens(false);
+    }
+    carregarItens();
+  }, [vendasPeriodo]);
 
   const grafico = useMemo(() => {
     const { inicio, fim } = calcularIntervalo(periodo, customIni, customFim);
@@ -283,16 +313,62 @@ export default function Dashboard() {
     return { pontos, total, qtd: vendasPeriodo.length, max: Math.max(1, ...pontos.map((p) => p.valor)) };
   }, [vendasPeriodo, periodo, customIni, customFim]);
 
+  // Ranking de produtos mais vendidos + margem de lucro do período selecionado.
+  // O custo usado é o preco_custo ATUAL do produto (não há histórico de custo
+  // por venda), então é uma estimativa — funciona bem desde que o custo não
+  // mude com muita frequência.
+  const relatorioProdutos = useMemo(() => {
+    const mapa = new Map();
+    let custoTotal = 0;
+    let faturamentoItens = 0;
+    for (const it of itensPeriodo) {
+      const nome = it.produtos?.nome || it.descricao || "Produto removido";
+      const custoUnit = Number(it.produtos?.preco_custo || 0);
+      const qtd = Number(it.quantidade || 0);
+      const totalItem = Number(it.total || 0);
+      custoTotal += custoUnit * qtd;
+      faturamentoItens += totalItem;
+      const atual = mapa.get(nome) || { nome, qtd: 0, total: 0 };
+      atual.qtd += qtd;
+      atual.total += totalItem;
+      mapa.set(nome, atual);
+    }
+    const ranking = Array.from(mapa.values()).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
+    const lucro = faturamentoItens - custoTotal;
+    const margem = faturamentoItens > 0 ? (lucro / faturamentoItens) * 100 : 0;
+    return { ranking, custoTotal, faturamentoItens, lucro, margem };
+  }, [itensPeriodo]);
+
+  // Variação percentual do faturamento do mês atual em relação ao mês anterior.
+  const comparativo = useMemo(() => {
+    const { atual, anterior } = comparativoMensal;
+    const variacao =
+      anterior.total > 0
+        ? ((atual.total - anterior.total) / anterior.total) * 100
+        : atual.total > 0
+        ? 100
+        : 0;
+    return { atual, anterior, variacao };
+  }, [comparativoMensal]);
+
   useEffect(() => {
     async function carregar() {
       const inicioMes = new Date();
       inicioMes.setDate(1);
       inicioMes.setHours(0, 0, 0, 0);
 
-      const [prod, cli, notasMes, ultimasNotas, baixo] = await Promise.all([
+      const inicioMesAnterior = new Date(inicioMes);
+      inicioMesAnterior.setMonth(inicioMesAnterior.getMonth() - 1);
+
+      const [prod, cli, notasMes, notasMesAnterior, ultimasNotas, baixo] = await Promise.all([
         supabase.from("produtos").select("estoque"),
         supabase.from("clientes").select("id", { count: "exact", head: true }),
         supabase.from("notas").select("total").gte("criado_em", inicioMes.toISOString()),
+        supabase
+          .from("notas")
+          .select("total")
+          .gte("criado_em", inicioMesAnterior.toISOString())
+          .lt("criado_em", inicioMes.toISOString()),
         supabase.from("notas").select("*").order("criado_em", { ascending: false }).limit(6),
         supabase.from("produtos").select("*").lte("estoque", 3).order("estoque").limit(6),
       ]);
@@ -303,6 +379,16 @@ export default function Dashboard() {
         vendasMes: (notasMes.data || []).reduce((s, n) => s + Number(n.total || 0), 0),
         qtdNotasMes: notasMes.data?.length || 0,
         clientes: cli.count || 0,
+      });
+      setComparativoMensal({
+        atual: {
+          total: (notasMes.data || []).reduce((s, n) => s + Number(n.total || 0), 0),
+          qtd: notasMes.data?.length || 0,
+        },
+        anterior: {
+          total: (notasMesAnterior.data || []).reduce((s, n) => s + Number(n.total || 0), 0),
+          qtd: notasMesAnterior.data?.length || 0,
+        },
       });
       setUltimas(ultimasNotas.data || []);
       setBaixoEstoque(baixo.data || []);
@@ -385,6 +471,104 @@ export default function Dashboard() {
         ) : (
           <GraficoDesempenho pontos={grafico.pontos} max={grafico.max} />
         )}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Produtos mais vendidos no período selecionado acima */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <h2 className="font-bold text-slate-900">Mais vendidos</h2>
+          </div>
+          {carregandoItens ? (
+            <p className="text-sm text-slate-400 py-6 text-center">Carregando…</p>
+          ) : relatorioProdutos.ranking.length === 0 ? (
+            <p className="text-sm text-slate-400 py-6 text-center">Nenhuma venda no período.</p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {relatorioProdutos.ranking.map((p, i) => (
+                <div key={p.nome} className="flex items-center justify-between py-2.5 gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold flex items-center justify-center shrink-0">
+                      {i + 1}
+                    </span>
+                    <p className="font-semibold text-sm truncate">{p.nome}</p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-600 shrink-0">{p.qtd} un</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Margem de lucro do mesmo período */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Percent className="w-4 h-4 text-emerald-500" />
+            <h2 className="font-bold text-slate-900">Margem de lucro</h2>
+          </div>
+          {carregandoItens ? (
+            <p className="text-sm text-slate-400 py-6 text-center">Carregando…</p>
+          ) : relatorioProdutos.faturamentoItens === 0 ? (
+            <p className="text-sm text-slate-400 py-6 text-center">Nenhuma venda no período.</p>
+          ) : (
+            <>
+              <p className="text-2xl font-extrabold text-emerald-600">{fmtBRL(relatorioProdutos.lucro)}</p>
+              <p className="text-xs text-slate-400 mt-0.5 mb-4">
+                lucro estimado · {relatorioProdutos.margem.toFixed(1)}% de margem
+              </p>
+              <div className="flex justify-between text-xs text-slate-500 py-1.5 border-t border-slate-100">
+                <span>Faturamento (itens)</span>
+                <span className="font-semibold text-slate-700">{fmtBRL(relatorioProdutos.faturamentoItens)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500 py-1.5">
+                <span>Custo dos produtos</span>
+                <span className="font-semibold text-slate-700">{fmtBRL(relatorioProdutos.custoTotal)}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">
+                Estimado com o custo atual de cada produto — descontos da nota não entram nesse cálculo.
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Comparação mês atual x mês anterior (sempre fixo, não segue o filtro acima) */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-violet-600" />
+            <h2 className="font-bold text-slate-900">Mês atual vs. anterior</h2>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <p className="text-2xl font-extrabold text-slate-900">{fmtBRL(comparativo.atual.total)}</p>
+            <span
+              className={`flex items-center gap-0.5 text-xs font-bold ${
+                comparativo.variacao > 0.5
+                  ? "text-emerald-600"
+                  : comparativo.variacao < -0.5
+                  ? "text-red-500"
+                  : "text-slate-400"
+              }`}
+            >
+              {comparativo.variacao > 0.5 ? (
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              ) : comparativo.variacao < -0.5 ? (
+                <ArrowDownRight className="w-3.5 h-3.5" />
+              ) : (
+                <Minus className="w-3.5 h-3.5" />
+              )}
+              {Math.abs(comparativo.variacao).toFixed(1)}%
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mb-4">
+            {comparativo.atual.qtd} venda{comparativo.atual.qtd === 1 ? "" : "s"} este mês
+          </p>
+          <div className="flex justify-between text-xs text-slate-500 py-1.5 border-t border-slate-100">
+            <span>Mês passado</span>
+            <span className="font-semibold text-slate-700">
+              {fmtBRL(comparativo.anterior.total)} · {comparativo.anterior.qtd} venda{comparativo.anterior.qtd === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

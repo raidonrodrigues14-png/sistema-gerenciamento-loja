@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Search, FileUp, Lock } from "lucide-react";
+import { Search, FileUp, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+
+const POR_PAGINA = 20;
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   async function carregar() {
     const { data } = await supabase.from("produtos").select("*").order("nome");
@@ -15,10 +18,19 @@ export default function Produtos() {
   }
   useEffect(() => { carregar(); }, []);
 
+  // Sempre volta pra primeira página quando a busca muda, senão a pessoa
+  // pode ficar "perdida" numa página que não existe mais pro filtro atual.
+  useEffect(() => { setPagina(1); }, [busca]);
+
   const filtrados = produtos.filter((p) =>
     [p.nome, p.codigo, p.categoria, p.tamanho, p.cor, p.fornecedor]
       .filter(Boolean).join(" ").toLowerCase().includes(busca.toLowerCase())
   );
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * POR_PAGINA;
+  const visiveis = filtrados.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <div className="space-y-6">
@@ -60,7 +72,7 @@ export default function Produtos() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filtrados.map((p) => (
+            {visiveis.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-5 py-3.5">
                   <p className="font-semibold text-slate-900">{p.nome}</p>
@@ -96,6 +108,35 @@ export default function Produtos() {
             )}
           </tbody>
         </table>
+
+        {filtrados.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-200 flex-wrap gap-3">
+            <p className="text-xs text-slate-400">
+              Mostrando {inicio + 1}–{Math.min(inicio + POR_PAGINA, filtrados.length)} de {filtrados.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                className="btn-ghost"
+                style={{ height: 32, padding: "0 10px" }}
+                disabled={paginaAtual <= 1}
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </button>
+              <span className="text-xs text-slate-500 px-1">
+                Página {paginaAtual} de {totalPaginas}
+              </span>
+              <button
+                className="btn-ghost"
+                style={{ height: 32, padding: "0 10px" }}
+                disabled={paginaAtual >= totalPaginas}
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              >
+                Próxima <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
