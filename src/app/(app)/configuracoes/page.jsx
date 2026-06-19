@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import {
   Lock, AlertTriangle, Loader2, CheckCircle2,
-  Receipt, Wallet, CalendarClock,
+  Receipt, Wallet, CalendarClock, BarChart3,
 } from "lucide-react";
 
 // Hash SHA-256 do PIN do dono (não guardamos o PIN em texto puro) — mesmo
@@ -356,6 +356,21 @@ export default function Configuracoes() {
             getPreview={previewNotas}
             getExecutar={(escopo) => () => executarNotas(escopo)}
             textoConfirmacao="Zerar notas"
+          />
+
+          <CardZerarCategoria
+            titulo="Desempenho de vendas (Dashboard)"
+            icon={BarChart3}
+            corPerigo="#0891b2"
+            descricaoPorEscopo={(escopo) =>
+              (escopo === "mes"
+                ? `Zera o gráfico "Desempenho de vendas" do Dashboard apagando as notas de venda de ${limitesMesAtual().rotulo}.`
+                : "Zera o gráfico \"Desempenho de vendas\" do Dashboard apagando todas as notas de venda do histórico.") +
+              ' Esse gráfico usa os mesmos dados do cartão "Notas (vendas)" acima — zerar um zera o outro também.'
+            }
+            getPreview={previewNotas}
+            getExecutar={(escopo) => () => executarNotas(escopo)}
+            textoConfirmacao="Zerar desempenho de vendas"
           />
 
           <CardZerarCategoria
