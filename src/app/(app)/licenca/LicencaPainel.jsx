@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import { gerarPixPayload, formatarChavePix, qrUrl } from "@/lib/pix";
-import { ShieldCheck, ShieldAlert, Settings, LogOut, Copy, Check } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Settings, LogOut, Copy, Check, Lock } from "lucide-react";
+
+// Hash SHA-256 do PIN do dono — mesmo PIN usado em Configurações para proteger
+// ações sensíveis. Aqui protege a troca da chave Pix/mensalidade da licença,
+// pra terceiros não conseguirem desviar o pagamento pra outra chave.
+async function hashPin(pin) {
+  const enc = new TextEncoder().encode(String(pin || "").trim());
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 function hojeISO() {
   const d = new Date();
@@ -38,6 +47,46 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
   const [formPag, setFormPag] = useState({ data: hojeISO(), valor: "", observacao: "" });
   const [erroTabela, setErroTabela] = useState(false);
 
+  // ─── PIN do dono para proteger a configuração da chave Pix/mensalidade ───
+  const [cfgAdmin, setCfgAdmin] = useState(null);
+  const [pinLiberado, setPinLiberado] = useState(false);
+  const [pin, setPin] = useState("");
+  const [confirmaPin, setConfirmaPin] = useState("");
+  const [erroPin, setErroPin] = useState("");
+  const [verificandoPin, setVerificandoPin] = useState(false);
+
+  async function carregarCfgAdmin() {
+    let { data } = await supabase.from("config_admin").select("*").eq("id", 1).maybeSingle();
+    if (!data) {
+      const ins = await supabase.from("config_admin").insert({ id: 1 }).select().single();
+      data = ins.data;
+    }
+    setCfgAdmin(data);
+  }
+
+  async function enviarPin(e) {
+    e.preventDefault();
+    setErroPin("");
+    const precisaCriar = !cfgAdmin?.pin_hash;
+    if (precisaCriar) {
+      if (pin.trim().length < 4) return setErroPin("O PIN precisa ter pelo menos 4 dígitos.");
+      if (pin !== confirmaPin) return setErroPin("Os PINs digitados não coincidem.");
+      setVerificandoPin(true);
+      const pin_hash = await hashPin(pin);
+      const { data, error } = await supabase.from("config_admin").update({ pin_hash }).eq("id", 1).select().single();
+      setVerificandoPin(false);
+      if (error) return setErroPin("Erro ao salvar o PIN — verifique se a migração supabase/config_admin.sql foi executada no Supabase.");
+      setCfgAdmin(data);
+      setPinLiberado(true);
+    } else {
+      setVerificandoPin(true);
+      const hash = await hashPin(pin);
+      setVerificandoPin(false);
+      if (hash === cfgAdmin.pin_hash) setPinLiberado(true);
+      else setErroPin("PIN incorreto.");
+    }
+  }
+
   const cfgPadrao = {
     id: 1, chave_pix: "", tipo_chave: "aleatoria",
     nome_beneficiario: "Elta Variedades", cidade: "Fortaleza",
@@ -67,7 +116,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
     }
   }
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); carregarCfgAdmin(); }, []);
 
   // Avisa o layout que a licença está em dia (precisa ficar ANTES de qualquer
   // return condicional, senão viola as Rules of Hooks quando o estado muda)
@@ -213,7 +262,38 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
         </span>
         <span style={{ fontSize: 12, color: "var(--tx-3)" }}>{mostrarConfig ? "▲" : "▼"}</span>
       </button>
-      {mostrarConfig && formCfg && (
+      {mostrarConfig && formCfg && !pinLiberado && (
+        <div style={{ padding: "0 18px 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#a78bfa" }}>
+            <Lock size={16} />
+            <p style={{ fontWeight: 700, fontSize: 13.5, margin: 0 }}>
+              {cfgAdmin && !cfgAdmin.pin_hash ? "Criar PIN do dono" : "Área restrita ao dono da loja"}
+            </p>
+          </div>
+          <p style={{ fontSize: 12.5, color: "var(--tx-3)", margin: 0, lineHeight: 1.5 }}>
+            {cfgAdmin && !cfgAdmin.pin_hash
+              ? "Esse PIN protege a chave Pix e a mensalidade da licença — cadastre um PIN que só você conhece, pra funcionárias não conseguirem mudar pra onde vai esse pagamento."
+              : "Digite o PIN do dono para alterar a chave Pix ou o valor da mensalidade."}
+          </p>
+          <form onSubmit={enviarPin} style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 260 }}>
+            <div>
+              <label className="label">{cfgAdmin && !cfgAdmin.pin_hash ? "Criar PIN (mín. 4 dígitos)" : "PIN"}</label>
+              <input className="input" type="password" inputMode="numeric" autoFocus value={pin} onChange={(e) => setPin(e.target.value)} placeholder="••••" />
+            </div>
+            {cfgAdmin && !cfgAdmin.pin_hash && (
+              <div>
+                <label className="label">Confirmar PIN</label>
+                <input className="input" type="password" inputMode="numeric" value={confirmaPin} onChange={(e) => setConfirmaPin(e.target.value)} placeholder="••••" />
+              </div>
+            )}
+            {erroPin && <p style={{ fontSize: 12.5, color: "#f87171", margin: 0 }}>{erroPin}</p>}
+            <button className="btn-primary" style={{ height: 40 }} disabled={verificandoPin || !pin}>
+              {verificandoPin ? "Verificando…" : cfgAdmin && !cfgAdmin.pin_hash ? "Criar PIN" : "Entrar"}
+            </button>
+          </form>
+        </div>
+      )}
+      {mostrarConfig && formCfg && pinLiberado && (
         <div style={{ padding: "0 18px 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label className="label">Tipo de chave Pix</label>

@@ -9,12 +9,13 @@ import LicencaPainel from "./licenca/LicencaPainel";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
   CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
-  ShoppingCart, Settings,
+  ShoppingCart, Settings, Lock,
 } from "lucide-react";
 
 const menu = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/produtos", label: "Produtos", icon: Shirt },
+  { href: "/produtos/adicionar", label: "Adicionar produtos", icon: Lock },
   { href: "/importar", label: "Importar XML", icon: FileUp },
   { href: "/notas/nova", label: "Vendas", icon: ShoppingCart },
   { href: "/notas", label: "Notas", icon: Receipt },
@@ -153,6 +154,8 @@ export default function AppLayout({ children }) {
             const ativo =
               href === "/notas"
                 ? pathname.startsWith("/notas") && !pathname.startsWith("/notas/nova")
+                : href === "/produtos"
+                ? pathname.startsWith("/produtos") && !pathname.startsWith("/produtos/adicionar")
                 : pathname.startsWith(href);
             return (
               <Link
