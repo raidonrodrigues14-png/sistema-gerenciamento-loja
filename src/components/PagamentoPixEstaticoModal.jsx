@@ -1,18 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fmtBRL } from "@/lib/supabase";
 import { gerarPixPayload, formatarChavePix, qrUrl } from "@/lib/pix";
-import { QrCode, Copy, Check, X, Loader2, ShieldCheck, Settings } from "lucide-react";
+import { QrCode, Copy, Check, X, Loader2, ShieldCheck, Settings, RefreshCw } from "lucide-react";
+
+const RENOVA_A_CADA = 5 * 60; // 5 minutos, em segundos
 
 // ─── Pix estático (chave fixa da loja) ────────────────────────────────────────
 // Gera um QR Code Pix manual (sem AbacatePay): o pagamento cai direto na conta
 // vinculada à chave Pix configurada. Como não existe API pra consultar esse
 // pagamento, a confirmação é manual — quem recebeu o Pix confirma na tela.
+// A chave nunca muda, então renovar o QR a cada 5 min é só reforço visual
+// para o caso do cliente demorar pra pagar.
 export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirmar, onClose, onConfigurar }) {
   const [copiado, setCopiado] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [erro, setErro] = useState("");
+  const [restante, setRestante] = useState(RENOVA_A_CADA);
+  const [versaoQr, setVersaoQr] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setRestante((s) => {
+        if (s <= 1) {
+          setVersaoQr((v) => v + 1);
+          return RENOVA_A_CADA;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  function renovarAgora() {
+    setVersaoQr((v) => v + 1);
+    setRestante(RENOVA_A_CADA);
+  }
+
+  const mm = String(Math.floor(restante / 60)).padStart(2, "0");
+  const ss = String(restante % 60).padStart(2, "0");
 
   const semChave = !cfg?.chave_pix;
   const chaveFormatada = !semChave ? formatarChavePix(cfg.chave_pix, cfg.tipo_chave || "aleatoria") : "";
@@ -25,6 +52,7 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
         txid,
       })
     : null;
+  const qrSrc = payload ? `${qrUrl(payload)}&_r=${versaoQr}` : null;
 
   function copiar() {
     if (!payload) return;
@@ -89,9 +117,22 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
           </div>
         ) : (
           <>
-            <div style={{ background: "#fff", borderRadius: 14, padding: 14, display: "inline-block", marginBottom: 14 }}>
+            <div style={{ background: "#fff", borderRadius: 14, padding: 14, display: "inline-block", marginBottom: 10 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrUrl(payload)} alt="QR Code Pix" width={220} height={220} style={{ display: "block" }} />
+              <img src={qrSrc} alt="QR Code Pix" width={220} height={220} style={{ display: "block" }} />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
+              <span style={{ fontSize: 11, color: "var(--tx-4)" }}>
+                QR renova em {mm}:{ss}
+              </span>
+              <button
+                onClick={renovarAgora}
+                title="Renovar QR agora"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 2, display: "flex" }}
+              >
+                <RefreshCw size={13} />
+              </button>
             </div>
 
             <button onClick={copiar} className="btn-ghost" style={{ width: "100%", marginBottom: 8 }}>

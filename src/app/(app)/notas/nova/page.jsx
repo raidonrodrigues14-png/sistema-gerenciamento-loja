@@ -7,16 +7,99 @@ import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X, Setting
 import PagamentoPixModal from "@/components/PagamentoPixModal";
 import PagamentoPixEstaticoModal from "@/components/PagamentoPixEstaticoModal";
 
+// Gera um hash SHA-256 do PIN (não guardamos o PIN em texto puro)
+async function hashPin(pin) {
+  if (typeof window === "undefined" || !window.crypto?.subtle) return null;
+  const enc = new TextEncoder().encode(String(pin || "").trim());
+  const buf = await window.crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ─── Pedir o PIN antes de liberar a troca da chave Pix já configurada ────────
+function VerificarPinModal({ pinHash, onConfirmar, onClose }) {
+  const [pin, setPin] = useState("");
+  const [erro, setErro] = useState("");
+  const [verificando, setVerificando] = useState(false);
+
+  async function confirmar() {
+    if (!pin || verificando) return;
+    setVerificando(true);
+    setErro("");
+    const hash = await hashPin(pin);
+    setVerificando(false);
+    if (hash && hash === pinHash) onConfirmar();
+    else setErro("PIN incorreto.");
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)", padding: 16 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <p style={{ fontWeight: 700, fontSize: 15, color: "var(--tx)", margin: 0 }}>Digite o PIN</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 4 }}>
+            <X size={18} />
+          </button>
+        </div>
+        <p style={{ fontSize: 12.5, color: "var(--tx-3)", marginBottom: 12 }}>
+          Para trocar a chave Pix da loja, digite o PIN cadastrado.
+        </p>
+        <input
+          className="input"
+          type="password"
+          inputMode="numeric"
+          autoFocus
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") confirmar(); }}
+          placeholder="PIN"
+        />
+        {erro && <p style={{ color: "#e58d7b", fontSize: 12.5, marginTop: 8 }}>{erro}</p>}
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="btn-primary" style={{ flex: 1, height: 40, justifyContent: "center" }} disabled={verificando || !pin} onClick={confirmar}>
+            {verificando ? "Verificando…" : "Confirmar"}
+          </button>
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Configurar chave Pix da loja (usada no Pix manual/estático) ─────────────
 function ConfigPixModal({ cfg, onSave, onClose }) {
   const [form, setForm] = useState({ ...cfg });
+  const [trocarPin, setTrocarPin] = useState(false);
+  const [novoPin, setNovoPin] = useState("");
+  const [confirmaPin, setConfirmaPin] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
   const f = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const precisaCriarPin = !cfg?.pin_hash; // ainda não tem PIN cadastrado (1ª vez)
 
   async function salvar() {
+    setErro("");
+    if (precisaCriarPin || trocarPin) {
+      if (novoPin.trim().length < 4) return setErro("O PIN precisa ter pelo menos 4 dígitos.");
+      if (novoPin !== confirmaPin) return setErro("Os PINs digitados não coincidem.");
+    }
     setSalvando(true);
-    await onSave(form);
-    setSalvando(false);
+    try {
+      const payload = { ...form };
+      if (precisaCriarPin || trocarPin) payload.pin_hash = await hashPin(novoPin);
+      await onSave(payload);
+    } catch (e) {
+      setErro(
+        "Erro ao salvar: " + (e.message || e) +
+        " — verifique se a migração supabase/pix_estatico_venda_pin.sql foi executada no Supabase."
+      );
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -54,6 +137,56 @@ function ConfigPixModal({ cfg, onSave, onClose }) {
             <label className="label">Cidade</label>
             <input className="input" type="text" value={form.cidade_loja || ""} onChange={f("cidade_loja")} placeholder="Ex: Fortaleza" />
           </div>
+
+          <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            {precisaCriarPin ? (
+              <>
+                <p style={{ fontSize: 12.5, color: "var(--tx-3)", marginBottom: 8 }}>
+                  Crie um PIN para proteger a troca dessa chave no futuro.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <label className="label">Criar PIN (mín. 4 dígitos)</label>
+                    <input className="input" type="password" inputMode="numeric" value={novoPin} onChange={(e) => setNovoPin(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Confirmar PIN</label>
+                    <input className="input" type="password" inputMode="numeric" value={confirmaPin} onChange={(e) => setConfirmaPin(e.target.value)} />
+                  </div>
+                </div>
+              </>
+            ) : trocarPin ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <label className="label">Novo PIN (mín. 4 dígitos)</label>
+                  <input className="input" type="password" inputMode="numeric" value={novoPin} onChange={(e) => setNovoPin(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Confirmar novo PIN</label>
+                  <input className="input" type="password" inputMode="numeric" value={confirmaPin} onChange={(e) => setConfirmaPin(e.target.value)} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setTrocarPin(false); setNovoPin(""); setConfirmaPin(""); }}
+                  className="text-xs text-slate-400 hover:underline"
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  Cancelar troca de PIN
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTrocarPin(true)}
+                className="text-xs text-violet-600 font-medium hover:underline"
+              >
+                Trocar PIN de proteção
+              </button>
+            )}
+          </div>
+
+          {erro && <p style={{ color: "#e58d7b", fontSize: 12.5 }}>{erro}</p>}
+
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             <button className="btn-primary" style={{ flex: 1, height: 42, justifyContent: "center" }} disabled={salvando} onClick={salvar}>
               {salvando ? "Salvando…" : "Salvar"}
@@ -105,6 +238,7 @@ export default function NovaNota() {
   const [tipoPix, setTipoPix] = useState("automatico"); // "automatico" (AbacatePay) | "manual" (chave fixa)
   const [showPixEstatico, setShowPixEstatico] = useState(false);
   const [showConfigPix, setShowConfigPix] = useState(false);
+  const [showPinCheck, setShowPinCheck] = useState(false);
   const [pixCfg, setPixCfg] = useState({ chave_pix: "", tipo_chave: "aleatoria", nome_loja: "Elta Variedades", cidade_loja: "Fortaleza" });
   const [scanner, setScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
@@ -211,9 +345,17 @@ export default function NovaNota() {
   }, []);
 
   async function salvarPixCfg(novo) {
-    await supabase.from("config_pix_venda").upsert({ id: 1, ...novo });
-    setPixCfg(novo);
+    const { error } = await supabase.from("config_pix_venda").upsert({ id: 1, ...novo });
+    if (error) throw error;
+    setPixCfg((p) => ({ ...p, ...novo }));
     setShowConfigPix(false);
+  }
+
+  // Abre a configuração da chave Pix — se já existe um PIN cadastrado, pede o
+  // PIN antes de liberar a edição.
+  function abrirConfigPix() {
+    if (pixCfg?.pin_hash) setShowPinCheck(true);
+    else setShowConfigPix(true);
   }
 
   const filtrados = useMemo(
@@ -492,7 +634,7 @@ export default function NovaNota() {
                 {tipoPix === "manual" && (
                   <button
                     type="button"
-                    onClick={() => setShowConfigPix(true)}
+                    onClick={abrirConfigPix}
                     className="text-xs text-violet-600 font-medium flex items-center gap-1 hover:underline"
                   >
                     <Settings className="w-3 h-3" /> Configurar chave Pix da loja
@@ -628,6 +770,15 @@ export default function NovaNota() {
       {/* Configuração da chave Pix fixa da loja */}
       {showConfigPix && (
         <ConfigPixModal cfg={pixCfg} onSave={salvarPixCfg} onClose={() => setShowConfigPix(false)} />
+      )}
+
+      {/* Pede o PIN antes de liberar a troca da chave Pix já configurada */}
+      {showPinCheck && (
+        <VerificarPinModal
+          pinHash={pixCfg.pin_hash}
+          onConfirmar={() => { setShowPinCheck(false); setShowConfigPix(true); }}
+          onClose={() => setShowPinCheck(false)}
+        />
       )}
     </div>
   );
