@@ -112,13 +112,13 @@ function caminhoSuave(pontos) {
 function GraficoDesempenho({ pontos, max }) {
   const [hover, setHover] = useState(null);
 
-  const espaco = 56;
+  const espaco = 72;
   const padLeft = 52;
   const padRight = 16;
-  const padTop = 20;
+  const padTop = 24;
   const padBottom = 32;
-  const altura = 260;
-  const largura = Math.max(420, padLeft + padRight + pontos.length * espaco);
+  const altura = 360;
+  const largura = Math.max(480, padLeft + padRight + pontos.length * espaco);
   const baseline = altura - padBottom;
   const plotH = baseline - padTop;
 
@@ -147,7 +147,7 @@ function GraficoDesempenho({ pontos, max }) {
     <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${largura} ${altura}`}
-        style={{ width: "100%", minWidth: 420, height: altura }}
+        style={{ width: "100%", minWidth: 480, height: altura }}
         preserveAspectRatio="none"
       >
         <defs>
