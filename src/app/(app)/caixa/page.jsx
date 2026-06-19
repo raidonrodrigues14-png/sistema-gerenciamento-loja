@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, fmtBRL } from "@/lib/supabase";
 import {
-  Banknote, QrCode, CreditCard, Briefcase, CalendarClock,
+  Banknote, QrCode, CreditCard, CalendarClock,
   TrendingDown, Printer, Wallet, Receipt, Plus, X, ChevronDown, BookOpen,
 } from "lucide-react";
 
@@ -337,7 +337,6 @@ export default function Caixa() {
     { rotulo: "Pix", valor: pix, icon: QrCode },
     { rotulo: "Cartão de débito", valor: debito, icon: CreditCard },
     { rotulo: "Cartão de crédito", valor: credito, icon: CreditCard },
-    { rotulo: "Malinhas fechadas", valor: malinha, icon: Briefcase },
     { rotulo: "Crediário recebido (parcelas)", valor: crediarioRecebido + pagParcTotal, icon: CalendarClock },
     { rotulo: "Outras entradas", valor: entradasManuais, icon: Wallet },
   ];
