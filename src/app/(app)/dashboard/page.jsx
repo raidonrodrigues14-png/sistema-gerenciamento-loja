@@ -112,7 +112,7 @@ function caminhoSuave(pontos) {
 function GraficoDesempenho({ pontos, max }) {
   const [hover, setHover] = useState(null);
 
-  const espaco = 48;
+  const espaco = 30;
   const padLeft = 52;
   const padRight = 16;
   const padTop = 24;
