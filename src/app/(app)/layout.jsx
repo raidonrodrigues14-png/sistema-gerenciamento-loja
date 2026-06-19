@@ -9,7 +9,7 @@ import LicencaPainel from "./licenca/LicencaPainel";
 import {
   LayoutDashboard, Shirt, FileUp, Receipt, Users, LogOut, Menu, X,
   CreditCard, Wallet, Tags, MessageCircle, Calculator, BookOpen, KeyRound,
-  ShoppingCart,
+  ShoppingCart, Settings,
 } from "lucide-react";
 
 const menu = [
@@ -26,6 +26,7 @@ const menu = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/licenca", label: "Licença", icon: KeyRound },
+  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 function hojeISO() {
