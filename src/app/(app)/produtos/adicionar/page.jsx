@@ -1,13 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Plus, Search, Pencil, Trash2, X, LayoutGrid } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, LayoutGrid, ScanLine } from "lucide-react";
 
 const vazio = {
   codigo: "", nome: "", categoria: "Geral", tamanho: "", cor: "",
   preco_custo: "", preco_venda: "", estoque: 0, fornecedor: "",
 };
+
+// bip de confirmação ao ler um código de barras
+function bip(ok = true) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = ok ? 1200 : 280;
+    gain.gain.value = 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + (ok ? 0.12 : 0.3));
+  } catch {}
+}
 
 export default function AdicionarProdutos() {
   const [produtos, setProdutos] = useState([]);
@@ -21,6 +36,60 @@ export default function AdicionarProdutos() {
     nome: "", codigo: "", categoria: "Geral", fornecedor: "",
     preco_custo: "", preco_venda: "", tamanhos: "P, M, G", cores: "", estoque: 1,
   });
+
+  // leitor de código de barras (câmera) — para preencher o campo Código/Ref
+  const [scanner, setScanner] = useState(null); // null | "form" | "grade"
+  const [scanMsg, setScanMsg] = useState("");
+  const videoRef = useRef(null);
+  const controlsRef = useRef(null);
+
+  function codigoLido(codigo) {
+    const c = (codigo || "").trim();
+    if (!c) return;
+    bip(true);
+    if (scanner === "grade") setGrade((g) => ({ ...g, codigo: c }));
+    else setForm((f) => ({ ...f, codigo: c }));
+    setScanMsg(`✓ Código "${c}" lido`);
+    setScanner(null);
+  }
+
+  // liga/desliga a câmera quando o leitor abre/fecha
+  useEffect(() => {
+    if (!scanner) return;
+    let ativo = true;
+
+    (async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        const reader = new BrowserMultiFormatReader();
+        const controls = await reader.decodeFromVideoDevice(
+          undefined,
+          videoRef.current,
+          (result) => {
+            if (!result || !ativo) return;
+            codigoLido(result.getText());
+          }
+        );
+        if (!ativo) controls.stop();
+        else controlsRef.current = controls;
+      } catch (e) {
+        setScanMsg("Não consegui acessar a câmera. Verifique a permissão no navegador.");
+      }
+    })();
+
+    return () => {
+      ativo = false;
+      controlsRef.current?.stop();
+      controlsRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanner]);
+
+  useEffect(() => {
+    if (!scanMsg || scanner) return;
+    const t = setTimeout(() => setScanMsg(""), 3000);
+    return () => clearTimeout(t);
+  }, [scanMsg, scanner]);
 
   async function carregar() {
     const { data } = await supabase.from("produtos").select("*").order("nome");
@@ -213,8 +282,18 @@ export default function AdicionarProdutos() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Referência / Código base</label>
-                <input className="input" value={grade.codigo} onChange={(e) => setGrade({ ...grade, codigo: e.target.value })} placeholder="Ex: BLU001" />
+                <label className="label">Referência / Código de barras base</label>
+                <div className="flex gap-1.5">
+                  <input className="input" value={grade.codigo} onChange={(e) => setGrade({ ...grade, codigo: e.target.value })} placeholder="Ex: BLU001" />
+                  <button
+                    type="button"
+                    onClick={() => { setScanMsg(""); setScanner("grade"); }}
+                    className="btn-ghost shrink-0 px-3"
+                    title="Ler código de barras com a câmera"
+                  >
+                    <ScanLine className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="label">Categoria</label>
@@ -287,8 +366,18 @@ export default function AdicionarProdutos() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Código / Ref</label>
-                <input className="input" value={form.codigo || ""} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
+                <label className="label">Código / Ref (código de barras)</label>
+                <div className="flex gap-1.5">
+                  <input className="input" value={form.codigo || ""} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
+                  <button
+                    type="button"
+                    onClick={() => { setScanMsg(""); setScanner("form"); }}
+                    className="btn-ghost shrink-0 px-3"
+                    title="Ler código de barras com a câmera"
+                  >
+                    <ScanLine className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="label">Categoria</label>
@@ -327,6 +416,49 @@ export default function AdicionarProdutos() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* aviso da leitura do código de barras */}
+      {scanMsg && !scanner && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-xl px-4 py-3 text-sm font-semibold shadow-lg ${
+            scanMsg.startsWith("✓") ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {scanMsg}
+        </div>
+      )}
+
+      {/* Leitor de código de barras (câmera) */}
+      {scanner && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setScanner(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card w-full max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold flex items-center gap-2">
+                <ScanLine className="w-4 h-4 text-violet-600" /> Ler código de barras
+              </h2>
+              <button onClick={() => setScanner(null)} className="p-2 rounded-lg hover:bg-slate-50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative rounded-2xl overflow-hidden" style={{ background: "#000" }}>
+              <video ref={videoRef} className="w-full" style={{ maxHeight: 320, objectFit: "cover" }} />
+              <div
+                className="absolute left-6 right-6 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ height: 2, background: "rgba(220,60,60,0.85)", boxShadow: "0 0 12px rgba(220,60,60,0.8)" }}
+              />
+            </div>
+
+            {scanMsg && (
+              <p className="text-sm rounded-xl p-3 font-medium bg-amber-50 text-amber-700">{scanMsg}</p>
+            )}
+
+            <p className="text-xs text-slate-400">
+              Aponte a câmera para o código de barras da etiqueta. O código será preenchido automaticamente no campo.
+            </p>
+          </div>
         </div>
       )}
     </div>
