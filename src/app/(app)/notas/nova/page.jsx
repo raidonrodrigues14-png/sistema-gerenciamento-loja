@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, fmtBRL } from "@/lib/supabase";
-import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X, Settings } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Receipt, ShoppingBag, ScanLine, X, Settings, ChevronRight } from "lucide-react";
 import PagamentoPixModal from "@/components/PagamentoPixModal";
 import PagamentoPixEstaticoModal from "@/components/PagamentoPixEstaticoModal";
 import PagamentoCartaoModal from "@/components/PagamentoCartaoModal";
@@ -258,7 +258,12 @@ export default function NovaNota() {
   const controlsRef = useRef(null);
   const ultimoRef = useRef({ codigo: "", t: 0 });
   const produtosRef = useRef([]);
+  const carrinhoRef = useRef(null);
   useEffect(() => { produtosRef.current = produtos; }, [produtos]);
+
+  function irParaCarrinho() {
+    carrinhoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // processa um código lido (câmera ou scanner USB)
   function tratarCodigo(codigo) {
@@ -579,7 +584,7 @@ export default function NovaNota() {
         </div>
 
         {/* Carrinho / resumo */}
-        <div className="lg:col-span-2 space-y-4">
+        <div ref={carrinhoRef} className="lg:col-span-2 space-y-4">
           <div className="card p-5 space-y-4">
             <h2 className="font-bold flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-violet-600" />
@@ -599,15 +604,15 @@ export default function NovaNota() {
                       <p className="text-xs text-slate-400">{fmtBRL(i.preco)} cada</p>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => mudarQtd(i.produto_id, -1)} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
-                        <Minus className="w-3.5 h-3.5" />
+                      <button onClick={() => mudarQtd(i.produto_id, -1)} className="w-9 h-9 shrink-0 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                        <Minus className="w-4 h-4" />
                       </button>
                       <span className="w-7 text-center text-sm font-bold">{i.qtd}</span>
-                      <button onClick={() => mudarQtd(i.produto_id, 1)} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
-                        <Plus className="w-3.5 h-3.5" />
+                      <button onClick={() => mudarQtd(i.produto_id, 1)} className="w-9 h-9 shrink-0 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                        <Plus className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setCarrinho((c) => c.filter((x) => x.produto_id !== i.produto_id))} className="w-7 h-7 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center">
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <button onClick={() => setCarrinho((c) => c.filter((x) => x.produto_id !== i.produto_id))} className="w-9 h-9 shrink-0 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -626,7 +631,7 @@ export default function NovaNota() {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">Pagamento</label>
                 <select className="input" value={pagamento} onChange={(e) => setPagamento(e.target.value)}>
@@ -667,7 +672,7 @@ export default function NovaNota() {
               </div>
             )}
             {pagamento === "Crediário" && (
-              <div className="grid grid-cols-2 gap-3 bg-violet-50 rounded-xl p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-violet-50 rounded-xl p-3">
                 <div>
                   <label className="label">Nº de parcelas</label>
                   <input className="input" type="number" min="1" max="24" value={numParcelas} onChange={(e) => setNumParcelas(e.target.value)} />
@@ -676,7 +681,7 @@ export default function NovaNota() {
                   <label className="label">1º vencimento</label>
                   <input className="input" type="date" value={primeiroVenc} onChange={(e) => setPrimeiroVenc(e.target.value)} />
                 </div>
-                <p className="col-span-2 text-xs text-slate-500">
+                <p className="col-span-1 sm:col-span-2 text-xs text-slate-500">
                   {Math.max(1, Number(numParcelas))}x de {fmtBRL(total / Math.max(1, Number(numParcelas)))}
                 </p>
               </div>
@@ -718,6 +723,25 @@ export default function NovaNota() {
           </div>
         </div>
       </div>
+
+      {/* espaço para a barra fixa não cobrir o último botão no celular */}
+      {carrinho.length > 0 && <div className="lg:hidden h-16" />}
+
+      {/* Barra fixa (mobile): total do carrinho + atalho para finalizar a venda */}
+      {carrinho.length > 0 && (
+        <button
+          onClick={irParaCarrinho}
+          className="no-print lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-3 px-5 bg-violet-600 text-white shadow-[0_-8px_24px_rgba(0,0,0,0.35)]"
+          style={{ paddingTop: 14, paddingBottom: "calc(14px + env(safe-area-inset-bottom))" }}
+        >
+          <span className="text-sm font-bold">
+            {carrinho.reduce((s, i) => s + i.qtd, 0)} {carrinho.reduce((s, i) => s + i.qtd, 0) === 1 ? "peça" : "peças"} · {fmtBRL(total)}
+          </span>
+          <span className="flex items-center gap-1 font-bold text-sm">
+            Finalizar venda <ChevronRight className="w-4 h-4" />
+          </span>
+        </button>
+      )}
 
       {/* Scanner de código de barras */}
       {scanner && (

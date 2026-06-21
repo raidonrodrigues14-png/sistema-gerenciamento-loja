@@ -329,7 +329,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
             <label className="label">Chave Pix</label>
             <input className="input" type="text" value={formCfg.chave_pix ?? ""} onChange={f(setFormCfg)("chave_pix")} placeholder="Chave Pix de quem recebe a mensalidade" />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
             <div>
               <label className="label">Nome do beneficiário</label>
               <input className="input" type="text" value={formCfg.nome_beneficiario ?? ""} onChange={f(setFormCfg)("nome_beneficiario")} />
@@ -339,7 +339,7 @@ export default function LicencaPainel({ modoBloqueio = false, onLiberado, onSair
               <input className="input" type="text" value={formCfg.cidade ?? ""} onChange={f(setFormCfg)("cidade")} />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
             <div>
               <label className="label">Valor da mensalidade (R$)</label>
               <input className="input" type="text" inputMode="decimal" value={formCfg.valor_mensalidade ?? ""} onChange={f(setFormCfg)("valor_mensalidade")} placeholder="0,00" />

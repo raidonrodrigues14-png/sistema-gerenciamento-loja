@@ -87,8 +87,8 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
       <div
         style={{
           background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 20,
-          padding: 28, width: "100%", maxWidth: 560, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
-          maxHeight: "94vh", overflowY: "auto", textAlign: "center",
+          padding: 20, width: "100%", maxWidth: 560, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+          maxHeight: "94vh", overflowY: "auto", textAlign: "center", boxSizing: "border-box",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -96,7 +96,7 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
             <QrCode size={17} color="var(--gold)" /> Pix manual
           </p>
           {!confirmando && (
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 4 }}>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 8, margin: -4 }}>
               <X size={18} />
             </button>
           )}
@@ -117,7 +117,7 @@ export default function PagamentoPixEstaticoModal({ valor, txid, cfg, onConfirma
           </div>
         ) : (
           <>
-            <div style={{ background: "#fff", borderRadius: 18, padding: 24, maxWidth: "100%", width: 408, margin: "0 auto 10px", boxSizing: "border-box" }}>
+            <div style={{ background: "#fff", borderRadius: 18, padding: 16, maxWidth: "100%", width: 408, margin: "0 auto 10px", boxSizing: "border-box" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrSrc}

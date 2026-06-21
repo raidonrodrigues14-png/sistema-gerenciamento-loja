@@ -238,10 +238,10 @@ export default function AdicionarProdutos() {
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex gap-1 justify-end">
-                    <button onClick={() => abrirEdicao(p)} className="p-2 rounded-lg hover:bg-violet-100 text-slate-400 hover:text-violet-600">
+                    <button onClick={() => abrirEdicao(p)} className="p-2.5 rounded-lg hover:bg-violet-100 text-slate-400 hover:text-violet-600">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => excluir(p)} className="p-2 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
+                    <button onClick={() => excluir(p)} className="p-2.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -280,7 +280,7 @@ export default function AdicionarProdutos() {
               <label className="label">Nome da peça *</label>
               <input className="input" required value={grade.nome} onChange={(e) => setGrade({ ...grade, nome: e.target.value })} placeholder="Ex: Blusa de alcinha canelada" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">Referência / Código de barras base</label>
                 <div className="flex gap-1.5">
@@ -308,7 +308,7 @@ export default function AdicionarProdutos() {
               <label className="label">Cores (separadas por vírgula)</label>
               <input className="input" value={grade.cores} onChange={(e) => setGrade({ ...grade, cores: e.target.value })} placeholder="Preto, Branco, Rosa (deixe vazio se não tiver)" />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="label">Custo (R$)</label>
                 <input className="input" type="number" step="0.01" min="0" value={grade.preco_custo} onChange={(e) => setGrade({ ...grade, preco_custo: e.target.value })} />
@@ -364,7 +364,7 @@ export default function AdicionarProdutos() {
               <label className="label">Nome da peça *</label>
               <input className="input" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Vestido longo floral" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">Código / Ref (código de barras)</label>
                 <div className="flex gap-1.5">

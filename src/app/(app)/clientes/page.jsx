@@ -142,7 +142,7 @@ export default function Clientes() {
               <label className="label">Nome *</label>
               <input className="input" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">CPF / CNPJ</label>
                 <input className="input" value={form.cpf_cnpj || ""} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })} />

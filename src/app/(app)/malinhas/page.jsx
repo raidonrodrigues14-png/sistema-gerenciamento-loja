@@ -160,7 +160,7 @@ export default function Malinhas() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">Cliente *</label>
                 <select className="input" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
@@ -200,12 +200,12 @@ export default function Malinhas() {
               <div className="space-y-2">
                 <p className="label">Peças na malinha ({itens.reduce((s, i) => s + i.qtd, 0)})</p>
                 {itens.map((i) => (
-                  <div key={i.produto_id} className="flex items-center gap-2 text-sm">
+                  <div key={i.produto_id} className="flex items-center gap-1.5 text-sm">
                     <p className="flex-1 truncate font-medium">{i.descricao}</p>
-                    <button onClick={() => setItens((c) => c.map((x) => x.produto_id === i.produto_id ? { ...x, qtd: Math.max(1, x.qtd - 1) } : x))} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><Minus className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setItens((c) => c.map((x) => x.produto_id === i.produto_id ? { ...x, qtd: Math.max(1, x.qtd - 1) } : x))} className="w-9 h-9 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
                     <span className="w-6 text-center font-bold">{i.qtd}</span>
-                    <button onClick={() => adicionar({ id: i.produto_id, nome: i.descricao, preco_venda: i.preco })} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><Plus className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setItens((c) => c.filter((x) => x.produto_id !== i.produto_id))} className="w-7 h-7 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => adicionar({ id: i.produto_id, nome: i.descricao, preco_venda: i.preco })} className="w-9 h-9 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                    <button onClick={() => setItens((c) => c.filter((x) => x.produto_id !== i.produto_id))} className="w-9 h-9 shrink-0 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}
               </div>

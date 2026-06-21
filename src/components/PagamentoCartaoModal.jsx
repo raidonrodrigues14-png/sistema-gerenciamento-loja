@@ -39,8 +39,8 @@ export default function PagamentoCartaoModal({ valor, onConfirmar, onClose }) {
       <div
         style={{
           background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 20,
-          padding: 28, width: "100%", maxWidth: 420, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
-          maxHeight: "92vh", overflowY: "auto", textAlign: "center",
+          padding: 20, width: "100%", maxWidth: 420, boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+          maxHeight: "92vh", overflowY: "auto", textAlign: "center", boxSizing: "border-box",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -48,7 +48,7 @@ export default function PagamentoCartaoModal({ valor, onConfirmar, onClose }) {
             <CreditCard size={17} color="var(--gold)" /> Cartão de crédito
           </p>
           {!confirmando && (
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 4 }}>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tx-3)", padding: 8, margin: -4 }}>
               <X size={18} />
             </button>
           )}

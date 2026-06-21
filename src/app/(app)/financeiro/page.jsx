@@ -80,7 +80,7 @@ export default function Financeiro() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 max-w-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
         <div className="card p-5">
           <div className="flex items-center gap-2 text-emerald-600 mb-1">
             <TrendingUp className="w-4 h-4" /><span className="text-xs font-semibold uppercase">Entradas</span>
@@ -123,7 +123,7 @@ export default function Financeiro() {
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   {!m.fixo && (
-                    <button onClick={() => excluir(m.raw)} className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
+                    <button onClick={() => excluir(m.raw)} className="p-2.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
